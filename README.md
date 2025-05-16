@@ -1,6 +1,6 @@
 <div align="center">
 <h1>Packet+</h1>
-An improved version of Suphi Kaner's <a href="https://devforum.roblox.com/t/3573907">Packet</a> networking library.
+An improved version of Suphi Kaner's <a target="_blank" href="https://devforum.roblox.com/t/3573907">Packet</a> networking library.
 </div>
 <br>
 ​<br>
