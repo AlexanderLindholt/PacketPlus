@@ -6,13 +6,13 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 ​<br>
 <br>
 
-# How it's better
+# How it's better.
 This modified version of Packet offers simplified packet definitions and minor optimizations.<br>
 Additionally there are other minor changes, such as an error message for when you don't initalize on the server.
 
 <br>
 
-# What you need to know
+# What you need to know.
 When using the library, most things are identical to the original, but there is a key difference in Packet definitions:<br>
 You don't have to provide names for your packets, and it is instead required to have a shared packets module.
 
