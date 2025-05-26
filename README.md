@@ -16,7 +16,7 @@ Additionally there are other minor changes, such as an error message for when yo
 When using the library, most things are identical to the original, but there is a key difference in Packet definitions:<br>
 You don't have to provide names for your packets, and it is instead required to have a shared packets module.
 
-## Packet:
+## ❌ Packet:
 With shared module:
 ```lua
 local Packet = require(path.to.Packet)
@@ -34,7 +34,7 @@ local myPacket = Packet("MyPacket", Packet.String)
 local myCoolPacket = Packet("MyCoolPacket", Packet.Number)
 ```
 
-## Packet+:
+## ✅ Packet+:
 Shared module only:
 ```lua
 local Packet = require(path.to.Packet)
