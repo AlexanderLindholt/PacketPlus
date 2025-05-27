@@ -18,10 +18,13 @@ Modified by Alexander Lindholt:
 
 ]]--
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
 
 -- Requires
-local SignalPlus = require(ReplicatedStorage.SignalPlus)
+local SignalPlus = CollectionService:GetTagged("SignalPlus")[1]
+if not SignalPlus then error("Could not find SignalPlus library.") end
+SignalPlus = require(SignalPlus)
+
 local Task = require(script.Task)
 local Types = require(script.Types)
 
