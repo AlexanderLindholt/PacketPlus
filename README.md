@@ -13,6 +13,8 @@ Additionally there are other minor changes, such as an error message for when yo
 <br>
 
 # What you need to know.
+The library uses <a target="_blank" href="https://github.com/AlexanderLindholt/SignalPlus">Signal+</a>, so you have to <a target="_blank" href="https://alexanderlindholt.gitbook.io/signalplus/installation">install that</a>.
+
 When using the library, most things are identical to the original, but there is a key difference in Packet definitions:<br>
 You don't have to provide names for your packets, and it is instead required to have a shared packets module.
 
