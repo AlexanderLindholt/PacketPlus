@@ -7,7 +7,7 @@ Original by Suphi Kaner.
 Original version: 1.4
 
 Modified by Alexander Lindholt:
-- Changed signal module to Signal+.
+- Made signal module user choice.
 - Rewrote task module.
 - Enabled native code generation on 'Types' module.
 - Removed packet names.
@@ -21,9 +21,10 @@ Modified by Alexander Lindholt:
 local CollectionService = game:GetService("CollectionService")
 
 -- Requires
-local SignalPlus = CollectionService:GetTagged("SignalPlus")[1]
-if not SignalPlus then error("Could not find SignalPlus library.") end
-SignalPlus = require(SignalPlus)
+local Signal = CollectionService:GetTagged("Signal")[1]
+if not Signal then error("Could not find a signal module.") end
+Signal = require(Signal)
+if Signal.new then Signal = Signal.new end
 
 local Task = require(script.Task)
 local Types = require(script.Types)
@@ -73,9 +74,9 @@ local function Constructor<A..., B...>(_, ...: A...)
 	local packet = (setmetatable({}, Packet) :: any) :: Packet<A..., B...>
 	packet.Id = packetCounter
 	if RunService:IsServer() then
-		packet.OnServerEvent = SignalPlus() :: SignalPlus.Signal<(Player, A...)>
+		packet.OnServerEvent = Signal() :: SignalPlus.Signal<(Player, A...)>
 	else
-		packet.OnClientEvent = SignalPlus() :: SignalPlus.Signal<A...>
+		packet.OnClientEvent = Signal() :: SignalPlus.Signal<A...>
 	end
 	packets[packetCounter] = packet
 	packetCounter += 1
