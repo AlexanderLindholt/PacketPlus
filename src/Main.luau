@@ -24,7 +24,7 @@ local CollectionService = game:GetService("CollectionService")
 local Signal = CollectionService:GetTagged("Signal")[1]
 if not Signal then error("Could not find a signal module.") end
 Signal = require(Signal)
-if Signal.new then Signal = Signal.new end
+if type(Signal) == "table" and Signal.new then Signal = Signal.new end
 
 local Task = require(script.Task)
 local Types = require(script.Types)
