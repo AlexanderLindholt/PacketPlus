@@ -4,7 +4,7 @@
 --[[
 
 Original by Suphi Kaner.
-Original version: 1.4
+Original version: 1.5
 
 Modified by Alexander Lindholt:
 - Made signal module user choice.
