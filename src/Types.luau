@@ -42,8 +42,6 @@ local reads = {}
 local writes = {}
 local anyReads = {}			:: {[any]: () -> any}
 local anyWrites = {}		:: {[any]: (any) -> ()}
-local enums = Enum:GetEnums() :: {any} -- fix type checking bug
-local enumIndices = {} for index, enum in enums do enumIndices[enum] = index end
 
 
 -- Functions
@@ -441,21 +439,6 @@ writes.ColorSequence = function(value: ColorSequence)
 	end
 end
 
-
-types.EnumItem = ("EnumItem" :: any) :: EnumItem
-reads.EnumItem = function()
-	local bitOffset = bufferOffset * 8
-	bufferOffset += 3
-	return enums[buffer.readbits(activeBuffer, bitOffset + 0, 12)]:FromValue(buffer.readbits(activeBuffer, bitOffset + 12, 12))
-end
-writes.EnumItem = function(value: EnumItem)
-	Allocate(3)
-	local bitOffset = bufferOffset * 8
-	bufferOffset += 3
-	buffer.writebits(activeBuffer, bitOffset + 0, 12, enumIndices[value.EnumType])
-	buffer.writebits(activeBuffer, bitOffset + 12, 12, value.Value)
-end
-
 local characterIndices = {}
 local characters = require(script.Characters)
 for index, value in characters do characterIndices[value] = index end
@@ -485,6 +468,13 @@ writes.Characters = function(value: string)
 	end
 	bufferOffset += bytes
 end
+
+local enumIndices = {}
+local enums = require(script.Enums)
+for index, static in enums do enumIndices[static] = index end
+types.EnumItem = ("EnumItem" :: any) :: EnumItem
+reads.EnumItem = function() return enums[ReadU8()]:FromValue(ReadU16()) end
+writes.EnumItem = function(value: EnumItem) Allocate(3) WriteU8(enumIndices[value.EnumType]) WriteU16(value.Value) end
 
 local staticIndices = {}
 local statics = require(script.Static1)
@@ -658,17 +648,13 @@ anyWrites.ColorSequence = function(value: ColorSequence)
 end
 
 anyReads[27] = function()
-	local bitOffset = bufferOffset * 8
-	bufferOffset += 3
-	return enums[buffer.readbits(activeBuffer, bitOffset + 0, 12)]:FromValue(buffer.readbits(activeBuffer, bitOffset + 12, 12))
+	return enums[ReadU8()]:FromValue(ReadU16())
 end
 anyWrites.EnumItem = function(value: EnumItem)
 	Allocate(4)
 	WriteU8(27)
-	local bitOffset = bufferOffset * 8
-	bufferOffset += 3
-	buffer.writebits(activeBuffer, bitOffset + 0, 12, enumIndices[value.EnumType])
-	buffer.writebits(activeBuffer, bitOffset + 12, 12, value.Value)
+	WriteU8(enumIndices[value.EnumType])
+	WriteU16(value.Value)
 end
 
 anyReads[28] = function()
