@@ -3,8 +3,11 @@
 
 --[[
 
+Original version: 1.7
+Modified version: 1.0
+
 Original by Suphi Kaner.
-Original version: 1.5
+https://devforum.roblox.com/t/3573907
 
 Modified by Alexander Lindholt:
 - Made signal module user choice.
@@ -12,9 +15,10 @@ Modified by Alexander Lindholt:
 - Enabled native code generation on 'Types' module.
 - Removed packet names.
   - Removed the use of attributes.
-  - Removed packet error messages.
+  - Removed a few packet error messages.
 - Added an error message for when not initializing on the server.
-- Readified server frame interval.
+
+https://github.com/AlexanderLindholt/PacketPlus
 
 ]]--
 
@@ -41,8 +45,8 @@ export type Packet<A... = (), B... = ()> = {
 	ResponseTimeoutValue:	any,
 	ResponseReads:			{() -> any},
 	ResponseWrites:			{(any) -> ()},
-	OnServerEvent:			SignalPlus.Signal<(Player, A...)>,
-	OnClientEvent:			SignalPlus.Signal<A...>,
+	OnServerEvent:			Types.Signal<(Player, A...)>,
+	OnClientEvent:			Types.Signal<A...>,
 	OnServerInvoke:			nil | (player: Player, A...) -> B...,
 	OnClientInvoke:			nil | (A...) -> B...,
 	Response:				(self: Packet<A..., B...>, B...) -> Packet<A..., B...>,
@@ -65,7 +69,7 @@ local playerCursors			: {[Player]: Types.Cursor}
 local playerThreads			: {[Player]: {[number]: {Yielded: thread, Timeout: thread}, Index: number}}
 local threads				: {[number]: {Yielded: thread, Timeout: thread}, Index: number}
 local remoteEvent			: RemoteEvent
-local packetCounter			: number = 0
+local packetCounter			= 0
 local cursor = {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0}
 
 
@@ -74,9 +78,9 @@ local function Constructor<A..., B...>(_, ...: A...)
 	local packet = (setmetatable({}, Packet) :: any) :: Packet<A..., B...>
 	packet.Id = packetCounter
 	if RunService:IsServer() then
-		packet.OnServerEvent = Signal() :: SignalPlus.Signal<(Player, A...)>
+		packet.OnServerEvent = Signal() :: Types.Signal<(Player, A...)>
 	else
-		packet.OnClientEvent = Signal() :: SignalPlus.Signal<A...>
+		packet.OnClientEvent = Signal() :: Types.Signal<A...>
 	end
 	packets[packetCounter] = packet
 	packetCounter += 1
@@ -96,16 +100,25 @@ function Packet:Response(...)
 end
 
 function Packet:Fire(...)
-	Import(cursor)
-	WriteU8(self.Id)
 	if self.ResponseReads then
+		if RunService:IsServer() then error("You must use FireClient(player)", 2) end
+		local responseThread
+		for i = 1, 128 do
+			responseThread = threads[threads.Index]
+			if responseThread then threads.Index = (threads.Index + 1) % 128 else break end
+		end
+		if responseThread then error("Cannot have more than 128 yielded threads", 2) end
+		Import(cursor)
+		WriteU8(self.Id)
 		WriteU8(threads.Index)
-		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task.Delay(self.ResponseTimeout, Timeout, coroutine.running(), self.ResponseTimeoutValue)}
+		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task:Delay(self.ResponseTimeout, Timeout, threads, threads.Index, self.ResponseTimeoutValue)}
 		threads.Index = (threads.Index + 1) % 128
 		WriteParameters(self.Writes, {...})
 		cursor = Export()
 		return coroutine.yield()
 	else
+		Import(cursor)
+		WriteU8(self.Id)
 		WriteParameters(self.Writes, {...})
 		cursor = Export()
 	end
@@ -113,18 +126,26 @@ end
 
 function Packet:FireClient(player, ...)
 	if player.Parent == nil then return end
-	Import(playerCursors[player] or {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0})
-	WriteU8(self.Id)
 	if self.ResponseReads then
 		local threads = playerThreads[player]
 		if threads == nil then threads = {Index = 0} playerThreads[player] = threads end
+		local responseThread
+		for i = 1, 128 do
+			responseThread = threads[threads.Index]
+			if responseThread then threads.Index = (threads.Index + 1) % 128 else break end
+		end
+		if responseThread then error("Cannot have more than 128 yielded threads", 2) return end
+		Import(playerCursors[player] or {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0})
+		WriteU8(self.Id)
 		WriteU8(threads.Index)
-		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task.Delay(self.ResponseTimeout, Timeout, coroutine.running(), self.ResponseTimeoutValue)}
+		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task:Delay(self.ResponseTimeout, Timeout, threads, threads.Index, self.ResponseTimeoutValue)}
 		threads.Index = (threads.Index + 1) % 128
 		WriteParameters(self.Writes, {...})
 		playerCursors[player] = Export()
 		return coroutine.yield()
 	else
+		Import(playerCursors[player] or {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0})
+		WriteU8(self.Id)
 		WriteParameters(self.Writes, {...})
 		playerCursors[player] = Export()
 	end
@@ -208,8 +229,10 @@ function WriteParameters(writes: {(any) -> ()}, values: {any})
 	for index, func in writes do func(values[index]) end
 end
 
-function Timeout(thread: thread, value: any)
-	task.defer(thread, value)
+function Timeout(threads: {[number]: {Yielded: thread, Timeout: thread}, Index: number}, threadIndex: number, value: any)
+	local responseThreads = threads[threadIndex]
+	task.defer(responseThreads.Yielded, value)
+	threads[threadIndex] = nil
 end
 
 
@@ -218,9 +241,9 @@ if RunService:IsServer() then
 	playerCursors = {}
 	playerThreads = {}
 	remoteEvent = Instance.new("RemoteEvent", script)
-
+	
 	local playerBytes = {}
-
+	
 	local thread = task.spawn(function()
 		while true do
 			coroutine.yield()
@@ -249,7 +272,7 @@ if RunService:IsServer() then
 			table.clear(playerBytes)
 		end
 	end)
-
+	
 	local respond = function(packet: Packet, player: Player, threadIndex: number, ...)
 		if packet.OnServerInvoke == nil then return end
 		local values = {packet.OnServerInvoke(player, ...)}
@@ -271,13 +294,13 @@ if RunService:IsServer() then
 			if packet.ResponseReads then
 				local threadIndex = ReadU8()
 				if threadIndex < 128 then
-					Task.Defer(respond, packet, player, threadIndex, ReadParameters(packet.Reads))
+					Task:Defer(respond, packet, player, threadIndex, ReadParameters(packet.Reads))
 				else
 					threadIndex -= 128
-					local threads = playerThreads[player][threadIndex]
-					if threads then
-						task.cancel(threads.Timeout)
-						task.defer(threads.Yielded, ReadParameters(packet.ResponseReads))
+					local responseThreads = playerThreads[player][threadIndex]
+					if responseThreads then
+						task.cancel(responseThreads.Timeout)
+						task.defer(responseThreads.Yielded, ReadParameters(packet.ResponseReads))
 						playerThreads[player][threadIndex] = nil
 					else
 						ReadParameters(packet.ResponseReads)
@@ -288,25 +311,24 @@ if RunService:IsServer() then
 			end
 		end
 	end
-
+	
 	remoteEvent.OnServerEvent:Connect(function(player: Player, ...)
 		local success, errorMessage: string? = pcall(onServerEvent, player, ...)
 		if errorMessage and RunService:IsStudio() then warn(player.Name, errorMessage) end
 	end)
-
+	
 	PlayersService.PlayerRemoving:Connect(function(player)
 		playerCursors[player] = nil
 		playerThreads[player] = nil
 		playerBytes[player] = nil
 	end)
-
-	RunService.Heartbeat:Connect(function() task.defer(thread) end)
+	
+	RunService.Heartbeat:Connect(function(deltaTime) task.defer(thread) end)
 else
 	threads = {Index = 0}
-	remoteEvent = script:WaitForChild("RemoteEvent", 5)
-	if not remoteEvent then error("Server did not initialize (require) packet module.") end
+	remoteEvent = script:WaitForChild("RemoteEvent")
 	local totalTime = 0
-
+	
 	local thread = task.spawn(function()
 		while true do
 			coroutine.yield()
@@ -324,7 +346,7 @@ else
 			end
 		end
 	end)
-
+	
 	local respond = function(packet: Packet, threadIndex: number, ...)
 		if packet.OnClientInvoke == nil then return end
 		local values = {packet.OnClientInvoke(...)}
@@ -334,7 +356,7 @@ else
 		WriteParameters(packet.ResponseWrites, values)
 		cursor = Export()
 	end
-
+	
 	remoteEvent.OnClientEvent:Connect(function(receivedBuffer: buffer, instances: {Instance}?)
 		Import({Buffer = receivedBuffer, BufferLength = buffer.len(receivedBuffer), BufferOffset = 0, Instances = instances or {}, InstancesOffset = 0})
 		while Ended() == false do
@@ -342,14 +364,16 @@ else
 			if packet.ResponseReads then
 				local threadIndex = ReadU8()
 				if threadIndex < 128 then
-					Task.Defer(respond, packet, threadIndex, ReadParameters(packet.Reads))
+					Task:Defer(respond, packet, threadIndex, ReadParameters(packet.Reads))
 				else
 					threadIndex -= 128
-					local threads = threads[threadIndex]
-					if threads then
-						task.cancel(threads.Timeout)
-						task.defer(threads.Yielded, ReadParameters(packet.ResponseReads))
+					local responseThreads = threads[threadIndex]
+					if responseThreads then
+						task.cancel(responseThreads.Timeout)
+						task.defer(responseThreads.Yielded, ReadParameters(packet.ResponseReads))
 						threads[threadIndex] = nil
+					else
+						ReadParameters(packet.ResponseReads)
 					end
 				end
 			else
@@ -357,11 +381,11 @@ else
 			end
 		end
 	end)
-
+	
 	RunService.Heartbeat:Connect(function(deltaTime)
 		totalTime += deltaTime
-		if totalTime > 1/60 then
-			totalTime %= 1/60
+		if totalTime > 0.016666666666666666 then
+			totalTime %= 0.016666666666666666
 			task.defer(thread)
 		end
 	end)
