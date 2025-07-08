@@ -6,8 +6,11 @@
 Original version: 1.7
 Modified version: 1.0
 
+
 Original by Suphi Kaner.
-https://devforum.roblox.com/t/3573907
+
+DevForum: https://devforum.roblox.com/t/3573907
+
 
 Modified by Alexander Lindholt:
 - Made signal module user choice.
@@ -15,13 +18,13 @@ Modified by Alexander Lindholt:
 - Enabled native code generation on 'Types' module.
 - Removed packet names.
   - Removed the use of attributes.
-  - Removed a few packet error messages.
 - Added an error message for when not initializing on the server.
 
-https://github.com/AlexanderLindholt/PacketPlus
+GitHub: https://github.com/AlexanderLindholt/PacketPlus
 
 ]]--
 
+-- Services
 local CollectionService = game:GetService("CollectionService")
 
 -- Requires
@@ -45,8 +48,8 @@ export type Packet<A... = (), B... = ()> = {
 	ResponseTimeoutValue:	any,
 	ResponseReads:			{() -> any},
 	ResponseWrites:			{(any) -> ()},
-	OnServerEvent:			Types.Signal<(Player, A...)>,
-	OnClientEvent:			Types.Signal<A...>,
+	OnServerEvent:			Signal.Signal<(Player, A...)>,
+	OnClientEvent:			Signal.Signal<A...>,
 	OnServerInvoke:			nil | (player: Player, A...) -> B...,
 	OnClientInvoke:			nil | (A...) -> B...,
 	Response:				(self: Packet<A..., B...>, B...) -> Packet<A..., B...>,
@@ -69,19 +72,19 @@ local playerCursors			: {[Player]: Types.Cursor}
 local playerThreads			: {[Player]: {[number]: {Yielded: thread, Timeout: thread}, Index: number}}
 local threads				: {[number]: {Yielded: thread, Timeout: thread}, Index: number}
 local remoteEvent			: RemoteEvent
-local packetCounter			= 0
+local packetCounter			: number = 0
 local cursor = {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0}
 
 
 -- Constructor
 local function Constructor<A..., B...>(_, ...: A...)
 	local packet = (setmetatable({}, Packet) :: any) :: Packet<A..., B...>
-	packet.Id = packetCounter
 	if RunService:IsServer() then
-		packet.OnServerEvent = Signal() :: Types.Signal<(Player, A...)>
+		packet.OnServerEvent = Signal() :: Signal.Signal<(Player, A...)>
 	else
-		packet.OnClientEvent = Signal() :: Types.Signal<A...>
+		packet.OnClientEvent = Signal() :: Signal.Signal<A...>
 	end
+	packet.Id = packetCounter
 	packets[packetCounter] = packet
 	packetCounter += 1
 	packet.Reads, packet.Writes = ParametersToFunctions(table.pack(...))
@@ -111,7 +114,7 @@ function Packet:Fire(...)
 		Import(cursor)
 		WriteU8(self.Id)
 		WriteU8(threads.Index)
-		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task:Delay(self.ResponseTimeout, Timeout, threads, threads.Index, self.ResponseTimeoutValue)}
+		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task.Delay(self.ResponseTimeout, Timeout, threads, threads.Index, self.ResponseTimeoutValue)}
 		threads.Index = (threads.Index + 1) % 128
 		WriteParameters(self.Writes, {...})
 		cursor = Export()
@@ -138,7 +141,7 @@ function Packet:FireClient(player, ...)
 		Import(playerCursors[player] or {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0})
 		WriteU8(self.Id)
 		WriteU8(threads.Index)
-		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task:Delay(self.ResponseTimeout, Timeout, threads, threads.Index, self.ResponseTimeoutValue)}
+		threads[threads.Index] = {Yielded = coroutine.running(), Timeout = Task.Delay(self.ResponseTimeout, Timeout, threads, threads.Index, self.ResponseTimeoutValue)}
 		threads.Index = (threads.Index + 1) % 128
 		WriteParameters(self.Writes, {...})
 		playerCursors[player] = Export()
@@ -274,7 +277,7 @@ if RunService:IsServer() then
 	end)
 	
 	local respond = function(packet: Packet, player: Player, threadIndex: number, ...)
-		if packet.OnServerInvoke == nil then return end
+		if packet.OnServerInvoke == nil then if RunService:IsStudio() then warn("OnServerInvoke not found for packet:", packet.Id, "discarding event:", ...) end return end
 		local values = {packet.OnServerInvoke(player, ...)}
 		if player.Parent == nil then return end
 		Import(playerCursors[player] or {Buffer = buffer.create(128), BufferLength = 128, BufferOffset = 0, Instances = {}, InstancesOffset = 0})
@@ -294,7 +297,7 @@ if RunService:IsServer() then
 			if packet.ResponseReads then
 				local threadIndex = ReadU8()
 				if threadIndex < 128 then
-					Task:Defer(respond, packet, player, threadIndex, ReadParameters(packet.Reads))
+					Task.Defer(respond, packet, player, threadIndex, ReadParameters(packet.Reads))
 				else
 					threadIndex -= 128
 					local responseThreads = playerThreads[player][threadIndex]
@@ -302,6 +305,8 @@ if RunService:IsServer() then
 						task.cancel(responseThreads.Timeout)
 						task.defer(responseThreads.Yielded, ReadParameters(packet.ResponseReads))
 						playerThreads[player][threadIndex] = nil
+					elseif RunService:IsStudio() then
+						warn("Response thread not found for packet:", packet.Id, "discarding response:", ReadParameters(packet.ResponseReads))
 					else
 						ReadParameters(packet.ResponseReads)
 					end
@@ -326,7 +331,8 @@ if RunService:IsServer() then
 	RunService.Heartbeat:Connect(function(deltaTime) task.defer(thread) end)
 else
 	threads = {Index = 0}
-	remoteEvent = script:WaitForChild("RemoteEvent")
+	remoteEvent = script:WaitForChild("RemoteEvent", 10)
+	if not remoteEvent then error("Server has not initalized.") end
 	local totalTime = 0
 	
 	local thread = task.spawn(function()
@@ -348,7 +354,7 @@ else
 	end)
 	
 	local respond = function(packet: Packet, threadIndex: number, ...)
-		if packet.OnClientInvoke == nil then return end
+		if packet.OnClientInvoke == nil then warn("OnClientInvoke not found for packet:", packet.Id, "discarding event:", ...) return end
 		local values = {packet.OnClientInvoke(...)}
 		Import(cursor)
 		WriteU8(packet.Id)
@@ -364,7 +370,7 @@ else
 			if packet.ResponseReads then
 				local threadIndex = ReadU8()
 				if threadIndex < 128 then
-					Task:Defer(respond, packet, threadIndex, ReadParameters(packet.Reads))
+					Task.Defer(respond, packet, threadIndex, ReadParameters(packet.Reads))
 				else
 					threadIndex -= 128
 					local responseThreads = threads[threadIndex]
@@ -373,7 +379,7 @@ else
 						task.defer(responseThreads.Yielded, ReadParameters(packet.ResponseReads))
 						threads[threadIndex] = nil
 					else
-						ReadParameters(packet.ResponseReads)
+						warn("Response thread not found for packet:", packet.Id, "discarding response:", ReadParameters(packet.ResponseReads))
 					end
 				end
 			else

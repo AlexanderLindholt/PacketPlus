@@ -17,11 +17,11 @@ return table.freeze({
 		if length == 0 then
 			local thread = coroutine.create(reusableThread)
 			coroutine.resume(thread)
-			task.spawn(thread, callback, thread, ...)
+			return task.spawn(thread, callback, thread, ...)
 		else
 			local thread = threads[length]
 			threads[length] = nil -- Remove from free threads list.
-			task.spawn(thread, callback, thread, ...)
+			return task.spawn(thread, callback, thread, ...)
 		end
 	end,
 	Defer = function(callback, ...)
@@ -29,11 +29,11 @@ return table.freeze({
 		if length == 0 then
 			local thread = coroutine.create(reusableThread)
 			coroutine.resume(thread)
-			task.defer(thread, callback, thread, ...)
+			return task.defer(thread, callback, thread, ...)
 		else
 			local thread = threads[length]
 			threads[length] = nil -- Remove from free threads list.
-			task.defer(thread, callback, thread, ...)
+			return task.defer(thread, callback, thread, ...)
 		end
 	end,
 	Delay = function(delay, callback, ...)
@@ -41,11 +41,11 @@ return table.freeze({
 		if length == 0 then
 			local thread = coroutine.create(reusableThread)
 			coroutine.resume(thread)
-			task.delay(delay, thread, callback, thread, ...)
+			return task.delay(delay, thread, callback, thread, ...)
 		else
 			local thread = threads[length]
 			threads[length] = nil -- Remove from free threads list.
-			task.delay(delay, thread, callback, thread, ...)
+			return task.delay(delay, thread, callback, thread, ...)
 		end
 	end
 })
