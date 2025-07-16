@@ -8,7 +8,7 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 
 # ⚡ How it's better.
 This modified version of Packet offers simplified packet definitions and minor optimizations.<br>
-Additionally there are other minor changes, such as an error message for when you don't initalize on the server.
+Additionally there are a few QoL changes, such as an error message for when you don't initalize on the server.
 
 <br>
 
@@ -19,11 +19,11 @@ It's crucial that you give the module the tag `Signal`, so that Packet+ can iden
 
 <br>
 
-When using the library, most things are identical to the original, but there is a key difference in Packet definitions:<br>
+When using the library, most things are identical to the original, but there is a key difference in Packet definitions:
 You don't have to provide names for your packets, and it is instead required to have a shared packets module.
 
 ## ❌ Packet:
-With shared module:
+Use a shared module:
 ```lua
 local Packet = require(path.to.Packet)
 
@@ -41,7 +41,7 @@ local myCoolPacket = Packet("MyCoolPacket", Packet.Number)
 ```
 
 ## ✅ Packet+:
-Shared module only:
+Use a shared module:
 ```lua
 local Packet = require(path.to.Packet)
 
@@ -50,3 +50,4 @@ return table.freeze({
 	MyCoolPacket = Packet(Packet.Number)
 })
 ```
+No support for putting definitions in every script, because that's ugly anyways!
