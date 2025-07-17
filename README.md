@@ -19,8 +19,8 @@ It's crucial that you give the module the tag `Signal`, so that Packet+ can iden
 
 <br>
 
-When using the library, most things are identical to the original, but there is a key difference in Packet definitions:
-You don't have to provide names for your packets, and it is instead required to have a shared packets module.
+When using the library, most things are identical to the original, but there is a key difference in packet definitions:
+Packets don't have names, and shall be defined in a shared module.
 
 ## ❌ Packet:
 Use a shared module:
