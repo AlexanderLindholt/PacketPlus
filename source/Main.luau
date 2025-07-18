@@ -4,7 +4,8 @@
 --[[
 
 Original version: 1.7
-Modified version: 1.1
+
+Modified version: 1.1.0
 
 Original by Suphi Kaner.
 DevForum: https://devforum.roblox.com/t/3573907
@@ -38,8 +39,8 @@ export type Packet<A... = (), B... = ()> = {
 	ResponseTimeoutValue:	any,
 	ResponseReads:			{() -> any},
 	ResponseWrites:			{(any) -> ()},
-	OnServerEvent:			Signal.Signal<(Player, A...)>,
-	OnClientEvent:			Signal.Signal<A...>,
+	OnServerEvent:			Types.Signal<(Player, A...)>,
+	OnClientEvent:			Types.Signal<A...>,
 	OnServerInvoke:			nil | (player: Player, A...) -> B...,
 	OnClientInvoke:			nil | (A...) -> B...,
 	Response:				(self: Packet<A..., B...>, B...) -> Packet<A..., B...>,
