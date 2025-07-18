@@ -8,7 +8,7 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 
 # ⚡ How it's better.
 This modified version of Packet offers simplified packet definitions and minor optimizations.<br>
-Additionally there are a few QoL changes, such as an error message for when you don't initalize on the server.
+Additionally, it brings QoL changes, such as additional and improved error messages.
 
 <br>
 
@@ -19,8 +19,7 @@ It's crucial that you give the module the tag `Signal`, so that Packet+ can iden
 
 <br>
 
-When using the library, most things are identical to the original, but there is a key difference in packet definitions:
-Packets don't have names, and shall be defined in a shared module.
+The API is mostly identical to the original library, but there is a key difference, seen below:
 
 ## ❌ Packet:
 Use a shared module:
