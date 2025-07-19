@@ -5,7 +5,7 @@
 
 Original version: 1.7
 
-Modified version: 1.1.0
+Modified version: 1.1.1
 
 Original by Suphi Kaner.
 DevForum: https://devforum.roblox.com/t/3573907
@@ -318,7 +318,7 @@ if RunService:IsServer() then
 	RunService.Heartbeat:Connect(function(deltaTime) task.defer(thread) end)
 else
 	threads = {Index = 0}
-	remoteEvent = script:WaitForChild("RemoteEvent")
+	remoteEvent = script:WaitForChild("RemoteEvent", 5)
 	if not remoteEvent then error("Server has not initalized.") end
 	local totalTime = 0
 	
