@@ -26,10 +26,10 @@ Use a shared module:
 ```lua
 local Packet = require(path.to.Packet)
 
-return table.freeze({
+return {
 	MyPacket = Packet("MyPacket", Packet.String),
 	MyCoolPacket = Packet("MyCoolPacket", Packet.Number)
-})
+}
 ```
 Or put definitions in every script that uses the packets:
 ```lua
@@ -44,9 +44,9 @@ Use a shared module:
 ```lua
 local Packet = require(path.to.Packet)
 
-return table.freeze({
+return {
 	MyPacket = Packet(Packet.String),
 	MyCoolPacket = Packet(Packet.Number)
-})
+}
 ```
 No support for putting definitions in every script, because that's ugly anyways!
