@@ -13,7 +13,9 @@ Additionally, it brings QoL changes, such as additional and improved error messa
 <br>
 
 # What you need to know.
-You need to setup a signal library.
+First and foremost, [learn the original Packet library](https://www.youtube.com/watch?v=WoIElUdj64A&ab_channel=SuphiKaner).
+
+Then, for Packet+, you need to setup a signal library.
 <a target="_blank" href="https://github.com/AlexanderLindholt/SignalPlus">Signal+</a> is recommended for performance.<br>
 It's crucial that you give the module the tag `Signal`, so that Packet+ can identify it.
 
