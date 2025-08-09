@@ -318,15 +318,15 @@ reads.Vector2F32 = function() return Vector2.new(ReadF32(), ReadF32()) end
 writes.Vector2F32 = function(value: Vector2) Allocate(8) WriteF32(value.X) WriteF32(value.Y) end
 
 types.Vector3S16 = ("Vector3S16" :: any) :: Vector3
-reads.Vector3S16 = function() return Vector3.new(ReadS16(), ReadS16(), ReadS16()) end
+reads.Vector3S16 = function() return vector.create(ReadS16(), ReadS16(), ReadS16()) end
 writes.Vector3S16 = function(value: Vector3) Allocate(6) WriteS16(value.X) WriteS16(value.Y) WriteS16(value.Z) end
 
 types.Vector3F24 = ("Vector3F24" :: any) :: Vector3
-reads.Vector3F24 = function() return Vector3.new(ReadF24(), ReadF24(), ReadF24()) end
+reads.Vector3F24 = function() return vector.create(ReadF24(), ReadF24(), ReadF24()) end
 writes.Vector3F24 = function(value: Vector3) Allocate(9) WriteF24(value.X) WriteF24(value.Y) WriteF24(value.Z) end
 
 types.Vector3F32 = ("Vector3F32" :: any) :: Vector3
-reads.Vector3F32 = function() return Vector3.new(ReadF32(), ReadF32(), ReadF32()) end
+reads.Vector3F32 = function() return vector.create(ReadF32(), ReadF32(), ReadF32()) end
 writes.Vector3F32 = function(value: Vector3) Allocate(12) WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z) end
 
 types.NumberU4 = ("NumberU4" :: any) :: {number}
@@ -395,7 +395,7 @@ end
 types.CFrameF24U8 = ("CFrameF24U8" :: any) :: CFrame
 reads.CFrameF24U8 = function()
 	return CFrame.fromEulerAnglesXYZ(ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331)
-		+ Vector3.new(ReadF24(), ReadF24(), ReadF24())
+		+ vector.create(ReadF24(), ReadF24(), ReadF24())
 end
 writes.CFrameF24U8 = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
@@ -407,7 +407,7 @@ end
 types.CFrameF32U8 = ("CFrameF32U8" :: any) :: CFrame
 reads.CFrameF32U8 = function()
 	return CFrame.fromEulerAnglesXYZ(ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331)
-		+ Vector3.new(ReadF32(), ReadF32(), ReadF32())
+		+ vector.create(ReadF32(), ReadF32(), ReadF32())
 end
 writes.CFrameF32U8 = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
@@ -419,7 +419,7 @@ end
 types.CFrameF32U16 = ("CFrameF32U16" :: any) :: CFrame
 reads.CFrameF32U16 = function()
 	return CFrame.fromEulerAnglesXYZ(ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361)
-		+ Vector3.new(ReadF32(), ReadF32(), ReadF32())
+		+ vector.create(ReadF32(), ReadF32(), ReadF32())
 end
 writes.CFrameF32U16 = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
@@ -431,8 +431,8 @@ end
 types.Region3 = ("Region3" :: any) :: Region3
 reads.Region3 = function()
 	return Region3.new(
-		Vector3.new(ReadF32(), ReadF32(), ReadF32()),
-		Vector3.new(ReadF32(), ReadF32(), ReadF32())
+		vector.create(ReadF32(), ReadF32(), ReadF32()),
+		vector.create(ReadF32(), ReadF32(), ReadF32())
 	)
 end
 writes.Region3 = function(value: Region3)
@@ -621,12 +621,12 @@ anyWrites.Rect = function(value: Rect) Allocate(17) WriteU8(20) WriteF32(value.M
 anyReads[21] = function() return Vector2.new(ReadF32(), ReadF32()) end
 anyWrites.Vector2 = function(value: Vector2) Allocate(9) WriteU8(21) WriteF32(value.X) WriteF32(value.Y) end
 
-anyReads[22] = function() return Vector3.new(ReadF32(), ReadF32(), ReadF32()) end
+anyReads[22] = function() return vector.create(ReadF32(), ReadF32(), ReadF32()) end
 anyWrites.Vector3 = function(value: Vector3) Allocate(13) WriteU8(22) WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z) end
 
 anyReads[23] = function()
 	return CFrame.fromEulerAnglesXYZ(ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361)
-		+ Vector3.new(ReadF32(), ReadF32(), ReadF32())
+		+ vector.create(ReadF32(), ReadF32(), ReadF32())
 end
 anyWrites.CFrame = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
@@ -638,8 +638,8 @@ end
 
 anyReads[24] = function()
 	return Region3.new(
-		Vector3.new(ReadF32(), ReadF32(), ReadF32()),
-		Vector3.new(ReadF32(), ReadF32(), ReadF32())
+		vector.create(ReadF32(), ReadF32(), ReadF32()),
+		vector.create(ReadF32(), ReadF32(), ReadF32())
 	)
 end
 anyWrites.Region3 = function(value: Region3)

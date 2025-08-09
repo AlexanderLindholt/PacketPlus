@@ -5,7 +5,7 @@
 
 Original version: 1.7
 
-Modified version: 1.1.1
+Modified version: 1.1.2
 
 Original by Suphi Kaner.
 DevForum: https://devforum.roblox.com/t/3573907
