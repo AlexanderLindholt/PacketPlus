@@ -20,7 +20,7 @@
 ]]
 
 
--- Types
+-- Types.
 export type Cursor = {
 	Buffer:					buffer,
 	BufferLength:			number,
@@ -30,63 +30,64 @@ export type Cursor = {
 }
 
 -- Signal types from Signal+.
-type Connection = {
+export type Connection = {
 	Connected: boolean,
 	Disconnect: typeof(
-		-- Disconnects the connection.
-		-- To reconnect, make a new connection.
+		-- Erases the connection.
 		function(connection: Connection) end
 	)
 }
 export type Signal<Parameters...> = {
 	Connect: typeof(
-		-- Connects the given function.
+		-- Connects a function.
 		function(signal: Signal<Parameters...>, callback: (Parameters...) -> ()): Connection end
 	),
 	Once: typeof(
-		-- Connects the given function, but disconnects after first fire.
+		-- Connects a function, then auto-disconnects after the first call.
 		function(signal: Signal<Parameters...>, callback: (Parameters...) -> ()): Connection end
 	),
 	Wait: typeof(
-		-- Yields the current thread until the next fire.
+		-- Yields the calling thread until the next fire.
 		function(signal: Signal<Parameters...>): Parameters... end
 	),
 	
 	Fire: typeof(
-		-- Fires all callbacks and resumes all waiting threads.
+		-- Runs all connected functions, and resumes all waiting threads.
 		function(signal: Signal<Parameters...>, ...: Parameters...) end
 	),
 	
 	DisconnectAll: typeof(
-		-- Disconnects all connections.
+		-- Erases all connections.<br>
+		-- <em>Much faster than calling <code>Disconnect</code> on each.</em>
 		function(signal: Signal<Parameters...>) end
 	),
 	Destroy: typeof(
-		-- Disconnects all connections, and makes the signal unusable.
+		-- Erases all connections and methods, making the signal unusable.<br>
+		-- Remove references to the signal to delete it completely.
 		function(signal: Signal<Parameters...>) end
 	)
 }
 
 
 -- Varables
-local activeCursor			: Cursor
-local activeBuffer			: buffer
-local bufferLength			: number
-local bufferOffset			: number
-local instances				: {Instance}
-local instancesOffset		: number
-local types = {}
+local activeCursor: Cursor
+local activeBuffer: buffer
+local bufferLength: number
+local bufferOffset: number
+local instances: {Instance}
+local instancesOffset: number
+local dataTypes = {}
 local reads = {}
 local writes = {}
-local anyReads = {}			:: {[any]: () -> any}
-local anyWrites = {}		:: {[any]: (any) -> ()}
+local anyreads = {}	:: {[any]: () -> any}
+local anywrites = {} :: {[any]: (any) -> ()}
 
 
--- Functions
-local function Allocate(bytes: number)
+-- Functions.
+local function allocate(bytes: number)
 	local targetLength = bufferOffset + bytes
 	if bufferLength < targetLength then
-		while bufferLength < targetLength do bufferLength *= 2 end
+		while true do bufferLength *= 2 if bufferLength >= targetLength then break end end
 		local newBuffer = buffer.create(bufferLength)
 		buffer.copy(newBuffer, 0, activeBuffer, 0, bufferOffset)
 		activeCursor.Buffer = newBuffer
@@ -94,35 +95,35 @@ local function Allocate(bytes: number)
 	end
 end
 
-local function ReadS8(): number local value = buffer.readi8(activeBuffer, bufferOffset) bufferOffset += 1 return value end
-local function WriteS8(value: number) buffer.writei8(activeBuffer, bufferOffset, value) bufferOffset += 1 end
-local function ReadS16(): number local value = buffer.readi16(activeBuffer, bufferOffset) bufferOffset += 2 return value end
-local function WriteS16(value: number) buffer.writei16(activeBuffer, bufferOffset, value) bufferOffset += 2 end
-local function ReadS24(): number local value = buffer.readbits(activeBuffer, bufferOffset * 8, 24) - 8388608 bufferOffset += 3 return value end
-local function WriteS24(value: number) buffer.writebits(activeBuffer, bufferOffset * 8, 24, value + 8388608) bufferOffset += 3 end
-local function ReadS32(): number local value = buffer.readi32(activeBuffer, bufferOffset) bufferOffset += 4 return value end
-local function WriteS32(value: number) buffer.writei32(activeBuffer, bufferOffset, value) bufferOffset += 4 end
-local function ReadU8(): number local value = buffer.readu8(activeBuffer, bufferOffset) bufferOffset += 1 return value end
-local function WriteU8(value: number) buffer.writeu8(activeBuffer, bufferOffset, value) bufferOffset += 1 end
-local function ReadU16(): number local value = buffer.readu16(activeBuffer, bufferOffset) bufferOffset += 2 return value end
-local function WriteU16(value: number) buffer.writeu16(activeBuffer, bufferOffset, value) bufferOffset += 2 end
-local function ReadU24(): number local value = buffer.readbits(activeBuffer, bufferOffset * 8, 24) bufferOffset += 3 return value end
-local function WriteU24(value: number) buffer.writebits(activeBuffer, bufferOffset * 8, 24, value) bufferOffset += 3 end
-local function ReadU32(): number local value = buffer.readu32(activeBuffer, bufferOffset) bufferOffset += 4 return value end
-local function WriteU32(value: number) buffer.writeu32(activeBuffer, bufferOffset, value) bufferOffset += 4 end
-local function ReadF32(): number local value = buffer.readf32(activeBuffer, bufferOffset) bufferOffset += 4 return value end
-local function WriteF32(value: number) buffer.writef32(activeBuffer, bufferOffset, value) bufferOffset += 4 end
-local function ReadF64(): number local value = buffer.readf64(activeBuffer, bufferOffset) bufferOffset += 8 return value end
-local function WriteF64(value: number) buffer.writef64(activeBuffer, bufferOffset, value) bufferOffset += 8 end
-local function ReadString(length: number) local value = buffer.readstring(activeBuffer, bufferOffset, length) bufferOffset += length return value end
-local function WriteString(value: string) buffer.writestring(activeBuffer, bufferOffset, value) bufferOffset += #value end
-local function ReadBuffer(length: number) local value = buffer.create(length) buffer.copy(value, 0, activeBuffer, bufferOffset, length) bufferOffset += length return value end
-local function WriteBuffer(value: buffer) buffer.copy(activeBuffer, bufferOffset, value) bufferOffset += buffer.len(value) end
-local function ReadInstance() instancesOffset += 1 return instances[instancesOffset] end
-local function WriteInstance(value) instancesOffset += 1 instances[instancesOffset] = value end
+local function readS8(): number local value = buffer.readi8(activeBuffer, bufferOffset) bufferOffset += 1 return value end
+local function writeS8(value: number) buffer.writei8(activeBuffer, bufferOffset, value) bufferOffset += 1 end
+local function readS16(): number local value = buffer.readi16(activeBuffer, bufferOffset) bufferOffset += 2 return value end
+local function writeS16(value: number) buffer.writei16(activeBuffer, bufferOffset, value) bufferOffset += 2 end
+local function readS24(): number local value = buffer.readbits(activeBuffer, bufferOffset*8, 24) - 8388608 bufferOffset += 3 return value end
+local function writeS24(value: number) buffer.writebits(activeBuffer, bufferOffset*8, 24, value + 8388608) bufferOffset += 3 end
+local function readS32(): number local value = buffer.readi32(activeBuffer, bufferOffset) bufferOffset += 4 return value end
+local function writeS32(value: number) buffer.writei32(activeBuffer, bufferOffset, value) bufferOffset += 4 end
+local function readU8(): number local value = buffer.readu8(activeBuffer, bufferOffset) bufferOffset += 1 return value end
+local function writeU8(value: number) buffer.writeu8(activeBuffer, bufferOffset, value) bufferOffset += 1 end
+local function readU16(): number local value = buffer.readu16(activeBuffer, bufferOffset) bufferOffset += 2 return value end
+local function writeU16(value: number) buffer.writeu16(activeBuffer, bufferOffset, value) bufferOffset += 2 end
+local function readU24(): number local value = buffer.readbits(activeBuffer, bufferOffset*8, 24) bufferOffset += 3 return value end
+local function writeU24(value: number) buffer.writebits(activeBuffer, bufferOffset*8, 24, value) bufferOffset += 3 end
+local function readU32(): number local value = buffer.readu32(activeBuffer, bufferOffset) bufferOffset += 4 return value end
+local function writeU32(value: number) buffer.writeu32(activeBuffer, bufferOffset, value) bufferOffset += 4 end
+local function readF32(): number local value = buffer.readf32(activeBuffer, bufferOffset) bufferOffset += 4 return value end
+local function writeF32(value: number) buffer.writef32(activeBuffer, bufferOffset, value) bufferOffset += 4 end
+local function readF64(): number local value = buffer.readf64(activeBuffer, bufferOffset) bufferOffset += 8 return value end
+local function writeF64(value: number) buffer.writef64(activeBuffer, bufferOffset, value) bufferOffset += 8 end
+local function readString(length: number) local value = buffer.readstring(activeBuffer, bufferOffset, length) bufferOffset += length return value end
+local function writeString(value: string) buffer.writestring(activeBuffer, bufferOffset, value) bufferOffset += #value end
+local function readBuffer(length: number) local value = buffer.create(length) buffer.copy(value, 0, activeBuffer, bufferOffset, length) bufferOffset += length return value end
+local function writeBuffer(value: buffer) buffer.copy(activeBuffer, bufferOffset, value) bufferOffset += buffer.len(value) end
+local function readInstance() instancesOffset += 1 return instances[instancesOffset] end
+local function writeInstance(value) instancesOffset += 1 instances[instancesOffset] = value end
 
-local function ReadF16(): number
-	local bitOffset = bufferOffset * 8
+local function readF16(): number
+	local bitOffset = bufferOffset*8
 	bufferOffset += 2
 	local mantissa = buffer.readbits(activeBuffer, bitOffset + 0, 10)
 	local exponent = buffer.readbits(activeBuffer, bitOffset + 10, 5)
@@ -132,13 +133,13 @@ local function ReadF16(): number
 		if exponent == 0b11111 then return if sign == 0 then math.huge else -math.huge end
 	elseif exponent == 0b11111 then return 0/0 end
 	if sign == 0 then
-		return (mantissa / 1024 + 1) * 2 ^ (exponent - 15)
+		return (mantissa/1024 + 1)*2^(exponent - 15)
 	else
-		return -(mantissa / 1024 + 1) * 2 ^ (exponent - 15)
+		return -(mantissa/1024 + 1)*2^(exponent - 15)
 	end
 end
-local function WriteF16(value: number)
-	local bitOffset = bufferOffset * 8
+local function writeF16(value: number)
+	local bitOffset = bufferOffset*8
 	bufferOffset += 2
 	if value == 0 then
 		buffer.writebits(activeBuffer, bitOffset, 16, 0b0_00000_0000000000)
@@ -152,14 +153,14 @@ local function WriteF16(value: number)
 		local sign = 0
 		if value < 0 then sign = 1 value = -value end
 		local mantissa, exponent = math.frexp(value)
-		buffer.writebits(activeBuffer, bitOffset + 0, 10, mantissa * 2048 - 1023.5)
+		buffer.writebits(activeBuffer, bitOffset + 0, 10, mantissa*2048 - 1023.5)
 		buffer.writebits(activeBuffer, bitOffset + 10, 5, exponent + 14)
 		buffer.writebits(activeBuffer, bitOffset + 15, 1, sign)
 	end
 end
 
-local function ReadF24(): number
-	local bitOffset = bufferOffset * 8
+local function readF24(): number
+	local bitOffset = bufferOffset*8
 	bufferOffset += 3
 	local mantissa = buffer.readbits(activeBuffer, bitOffset + 0, 17)
 	local exponent = buffer.readbits(activeBuffer, bitOffset + 17, 6)
@@ -169,13 +170,13 @@ local function ReadF24(): number
 		if exponent == 0b111111 then return if sign == 0 then math.huge else -math.huge end
 	elseif exponent == 0b111111 then return 0/0 end
 	if sign == 0 then
-		return (mantissa / 131072 + 1) * 2 ^ (exponent - 31)
+		return (mantissa/131072 + 1)*2^(exponent - 31)
 	else
-		return -(mantissa / 131072 + 1) * 2 ^ (exponent - 31)
+		return -(mantissa/131072 + 1)*2^(exponent - 31)
 	end
 end
-local function WriteF24(value: number)
-	local bitOffset = bufferOffset * 8
+local function writeF24(value: number)
+	local bitOffset = bufferOffset*8
 	bufferOffset += 3
 	if value == 0 then
 		buffer.writebits(activeBuffer, bitOffset, 24, 0b0_000000_00000000000000000) 
@@ -189,149 +190,149 @@ local function WriteF24(value: number)
 		local sign = 0
 		if value < 0 then sign = 1 value = -value end
 		local mantissa, exponent = math.frexp(value)
-		buffer.writebits(activeBuffer, bitOffset + 0, 17, mantissa * 262144 - 131071.5)
+		buffer.writebits(activeBuffer, bitOffset + 0, 17, mantissa*262144 - 131071.5)
 		buffer.writebits(activeBuffer, bitOffset + 17, 6, exponent + 30)
 		buffer.writebits(activeBuffer, bitOffset + 23, 1, sign)
 	end
 end
 
 
--- Types
-types.Any = "Any" :: any
-reads.Any = function() return anyReads[ReadU8()]() end
+-- Read/writes.
+dataTypes.Any = "Any" :: any
+reads.Any = function() return anyreads[readU8()]() end
 writes.Any = function(value: any)
-	local write = anyWrites[typeof(value)]
+	local write = anywrites[typeof(value)]
 	if not write then error("Data type '"..typeof(value).."' not supported.") end
 	write(value)
 end
 
-types.Nil = ("Nil" :: any) :: nil
+dataTypes.Nil = ("Nil" :: any) :: nil
 reads.Nil = function() return nil end
 writes.Nil = function(value: nil) end
 
-types.NumberS8 = ("NumberS8" :: any) :: number
-reads.NumberS8 = function() return ReadS8() end
-writes.NumberS8 = function(value: number) Allocate(1) WriteS8(value) end
+dataTypes.NumberS8 = ("NumberS8" :: any) :: number
+reads.NumberS8 = function() return readS8() end
+writes.NumberS8 = function(value: number) allocate(1) writeS8(value) end
 
-types.NumberS16 = ("NumberS16" :: any) :: number
-reads.NumberS16 = function() return ReadS16() end 
-writes.NumberS16 = function(value: number) Allocate(2) WriteS16(value) end
+dataTypes.NumberS16 = ("NumberS16" :: any) :: number
+reads.NumberS16 = function() return readS16() end 
+writes.NumberS16 = function(value: number) allocate(2) writeS16(value) end
 
-types.NumberS24 = ("NumberS24" :: any) :: number
-reads.NumberS24 = function() return ReadS24() end 
-writes.NumberS24 = function(value: number) Allocate(3) WriteS24(value) end
+dataTypes.NumberS24 = ("NumberS24" :: any) :: number
+reads.NumberS24 = function() return readS24() end 
+writes.NumberS24 = function(value: number) allocate(3) writeS24(value) end
 
-types.NumberS32 = ("NumberS32" :: any) :: number
-reads.NumberS32 = function() return ReadS32() end 
-writes.NumberS32 = function(value: number) Allocate(4) WriteS32(value) end
+dataTypes.NumberS32 = ("NumberS32" :: any) :: number
+reads.NumberS32 = function() return readS32() end 
+writes.NumberS32 = function(value: number) allocate(4) writeS32(value) end
 
-types.NumberU8 = ("NumberU8" :: any) :: number
-reads.NumberU8 = function() return ReadU8() end
-writes.NumberU8 = function(value: number) Allocate(1) WriteU8(value) end
+dataTypes.NumberU8 = ("NumberU8" :: any) :: number
+reads.NumberU8 = function() return readU8() end
+writes.NumberU8 = function(value: number) allocate(1) writeU8(value) end
 
-types.NumberU16 = ("NumberU16" :: any) :: number
-reads.NumberU16 = function() return ReadU16() end
-writes.NumberU16 = function(value: number) Allocate(2) WriteU16(value) end
+dataTypes.NumberU16 = ("NumberU16" :: any) :: number
+reads.NumberU16 = function() return readU16() end
+writes.NumberU16 = function(value: number) allocate(2) writeU16(value) end
 
-types.NumberU24 = ("NumberU24" :: any) :: number
-reads.NumberU24 = function() return ReadU24() end 
-writes.NumberU24 = function(value: number) Allocate(3) WriteU24(value) end
+dataTypes.NumberU24 = ("NumberU24" :: any) :: number
+reads.NumberU24 = function() return readU24() end 
+writes.NumberU24 = function(value: number) allocate(3) writeU24(value) end
 
-types.NumberU32 = ("NumberU32" :: any) :: number
-reads.NumberU32 = function() return ReadU32() end 
-writes.NumberU32 = function(value: number) Allocate(4) WriteU32(value) end
+dataTypes.NumberU32 = ("NumberU32" :: any) :: number
+reads.NumberU32 = function() return readU32() end 
+writes.NumberU32 = function(value: number) allocate(4) writeU32(value) end
 
-types.NumberF16 = ("NumberF16" :: any) :: number
-reads.NumberF16 = function() return ReadF16() end
-writes.NumberF16 = function(value: number) Allocate(2) WriteF16(value) end
+dataTypes.NumberF16 = ("NumberF16" :: any) :: number
+reads.NumberF16 = function() return readF16() end
+writes.NumberF16 = function(value: number) allocate(2) writeF16(value) end
 
-types.NumberF24 = ("NumberF24" :: any) :: number
-reads.NumberF24 = function() return ReadF24() end
-writes.NumberF24 = function(value: number) Allocate(3) WriteF24(value) end
+dataTypes.NumberF24 = ("NumberF24" :: any) :: number
+reads.NumberF24 = function() return readF24() end
+writes.NumberF24 = function(value: number) allocate(3) writeF24(value) end
 
-types.NumberF32 = ("NumberF32" :: any) :: number
-reads.NumberF32 = function() return ReadF32() end
-writes.NumberF32 = function(value: number) Allocate(4) WriteF32(value) end
+dataTypes.NumberF32 = ("NumberF32" :: any) :: number
+reads.NumberF32 = function() return readF32() end
+writes.NumberF32 = function(value: number) allocate(4) writeF32(value) end
 
-types.NumberF64 = ("NumberF64" :: any) :: number
-reads.NumberF64 = function() return ReadF64() end
-writes.NumberF64 = function(value: number) Allocate(8) WriteF64(value) end
+dataTypes.NumberF64 = ("NumberF64" :: any) :: number
+reads.NumberF64 = function() return readF64() end
+writes.NumberF64 = function(value: number) allocate(8) writeF64(value) end
 
-types.String = ("String" :: any) :: string
-reads.String = function() return ReadString(ReadU8()) end
-writes.String = function(value: string) local length = #value Allocate(1 + length) WriteU8(length) WriteString(value) end
+dataTypes.String = ("String" :: any) :: string
+reads.String = function() return readString(readU8()) end
+writes.String = function(value: string) local length = #value allocate(1 + length) writeU8(length) writeString(value) end
 
-types.StringLong = ("StringLong" :: any) :: string
-reads.StringLong = function() return ReadString(ReadU16()) end
-writes.StringLong = function(value: string) local length = #value Allocate(2 + length) WriteU16(length) WriteString(value) end
+dataTypes.StringLong = ("StringLong" :: any) :: string
+reads.StringLong = function() return readString(readU16()) end
+writes.StringLong = function(value: string) local length = #value allocate(2 + length) writeU16(length) writeString(value) end
 
-types.Buffer = ("Buffer" :: any) :: buffer
-reads.Buffer = function() return ReadBuffer(ReadU8()) end
-writes.Buffer = function(value: buffer) local length = buffer.len(value) Allocate(1 + length) WriteU8(length) WriteBuffer(value) end
+dataTypes.Buffer = ("Buffer" :: any) :: buffer
+reads.Buffer = function() return readBuffer(readU8()) end
+writes.Buffer = function(value: buffer) local length = buffer.len(value) allocate(1 + length) writeU8(length) writeBuffer(value) end
 
-types.BufferLong = ("BufferLong" :: any) :: buffer
-reads.BufferLong = function() return ReadBuffer(ReadU16()) end
-writes.BufferLong = function(value: buffer) local length = buffer.len(value) Allocate(2 + length) WriteU16(length) WriteBuffer(value) end
+dataTypes.BufferLong = ("BufferLong" :: any) :: buffer
+reads.BufferLong = function() return readBuffer(readU16()) end
+writes.BufferLong = function(value: buffer) local length = buffer.len(value) allocate(2 + length) writeU16(length) writeBuffer(value) end
 
-types.Instance = ("Instance" :: any) :: Instance
-reads.Instance = function() return ReadInstance() end
-writes.Instance = function(value: Instance) WriteInstance(value) end
+dataTypes.Instance = ("Instance" :: any) :: Instance
+reads.Instance = function() return readInstance() end
+writes.Instance = function(value: Instance) writeInstance(value) end
 
-types.Boolean8 = ("Boolean8" :: any) :: boolean
-reads.Boolean8 = function() return ReadU8() == 1 end
-writes.Boolean8 = function(value: boolean) Allocate(1) WriteU8(if value then 1 else 0) end
+dataTypes.Boolean8 = ("Boolean8" :: any) :: boolean
+reads.Boolean8 = function() return readU8() == 1 end
+writes.Boolean8 = function(value: boolean) allocate(1) writeU8(if value then 1 else 0) end
 
-types.NumberRange = ("NumberRange" :: any) :: NumberRange
-reads.NumberRange = function() return NumberRange.new(ReadF32(), ReadF32()) end
-writes.NumberRange = function(value: NumberRange) Allocate(8) WriteF32(value.Min) WriteF32(value.Max) end
+dataTypes.NumberRange = ("NumberRange" :: any) :: NumberRange
+reads.NumberRange = function() return NumberRange.new(readF32(), readF32()) end
+writes.NumberRange = function(value: NumberRange) allocate(8) writeF32(value.Min) writeF32(value.Max) end
 
-types.BrickColor = ("BrickColor" :: any) :: BrickColor
-reads.BrickColor = function() return BrickColor.new(ReadU16()) end
-writes.BrickColor = function(value: BrickColor) Allocate(2) WriteU16(value.Number) end
+dataTypes.BrickColor = ("BrickColor" :: any) :: BrickColor
+reads.BrickColor = function() return BrickColor.new(readU16()) end
+writes.BrickColor = function(value: BrickColor) allocate(2) writeU16(value.Number) end
 
-types.Color3 = ("Color3" :: any) :: Color3
-reads.Color3 = function() return Color3.fromRGB(ReadU8(), ReadU8(), ReadU8()) end
-writes.Color3 = function(value: Color3) Allocate(3) WriteU8(value.R * 255 + 0.5)  WriteU8(value.G * 255 + 0.5)  WriteU8(value.B * 255 + 0.5) end
+dataTypes.Color3 = ("Color3" :: any) :: Color3
+reads.Color3 = function() return Color3.fromRGB(readU8(), readU8(), readU8()) end
+writes.Color3 = function(value: Color3) allocate(3) writeU8(value.R*255 + 0.5)  writeU8(value.G*255 + 0.5)  writeU8(value.B*255 + 0.5) end
 
-types.UDim = ("UDim" :: any) :: UDim
-reads.UDim = function() return UDim.new(ReadS16() / 1000, ReadS16()) end
-writes.UDim = function(value: UDim) Allocate(4) WriteS16(value.Scale * 1000) WriteS16(value.Offset) end
+dataTypes.UDim = ("UDim" :: any) :: UDim
+reads.UDim = function() return UDim.new(readS16()/1000, readS16()) end
+writes.UDim = function(value: UDim) allocate(4) writeS16(value.Scale*1000) writeS16(value.Offset) end
 
-types.UDim2 = ("UDim2" :: any) :: UDim2
-reads.UDim2 = function() return UDim2.new(ReadS16() / 1000, ReadS16(), ReadS16() / 1000, ReadS16()) end
-writes.UDim2 = function(value: UDim2) Allocate(8) WriteS16(value.X.Scale * 1000) WriteS16(value.X.Offset) WriteS16(value.Y.Scale * 1000) WriteS16(value.Y.Offset) end
+dataTypes.UDim2 = ("UDim2" :: any) :: UDim2
+reads.UDim2 = function() return UDim2.new(readS16()/1000, readS16(), readS16()/1000, readS16()) end
+writes.UDim2 = function(value: UDim2) allocate(8) writeS16(value.X.Scale*1000) writeS16(value.X.Offset) writeS16(value.Y.Scale*1000) writeS16(value.Y.Offset) end
 
-types.Rect = ("Rect" :: any) :: Rect
-reads.Rect = function() return Rect.new(ReadF32(), ReadF32(), ReadF32(), ReadF32()) end
-writes.Rect = function(value: Rect) Allocate(16) WriteF32(value.Min.X) WriteF32(value.Min.Y) WriteF32(value.Max.X) WriteF32(value.Max.Y) end
+dataTypes.Rect = ("Rect" :: any) :: Rect
+reads.Rect = function() return Rect.new(readF32(), readF32(), readF32(), readF32()) end
+writes.Rect = function(value: Rect) allocate(16) writeF32(value.Min.X) writeF32(value.Min.Y) writeF32(value.Max.X) writeF32(value.Max.Y) end
 
-types.Vector2S16 = ("Vector2S16" :: any) :: Vector2
-reads.Vector2S16 = function() return Vector2.new(ReadS16(), ReadS16()) end
-writes.Vector2S16 = function(value: Vector2) Allocate(4) WriteS16(value.X) WriteS16(value.Y) end
+dataTypes.Vector2S16 = ("Vector2S16" :: any) :: Vector2
+reads.Vector2S16 = function() return Vector2.new(readS16(), readS16()) end
+writes.Vector2S16 = function(value: Vector2) allocate(4) writeS16(value.X) writeS16(value.Y) end
 
-types.Vector2F24 = ("Vector2F24" :: any) :: Vector2
-reads.Vector2F24 = function() return Vector2.new(ReadF24(), ReadF24()) end
-writes.Vector2F24 = function(value: Vector2) Allocate(6) WriteF24(value.X) WriteF24(value.Y) end
+dataTypes.Vector2F24 = ("Vector2F24" :: any) :: Vector2
+reads.Vector2F24 = function() return Vector2.new(readF24(), readF24()) end
+writes.Vector2F24 = function(value: Vector2) allocate(6) writeF24(value.X) writeF24(value.Y) end
 
-types.Vector2F32 = ("Vector2F32" :: any) :: Vector2
-reads.Vector2F32 = function() return Vector2.new(ReadF32(), ReadF32()) end
-writes.Vector2F32 = function(value: Vector2) Allocate(8) WriteF32(value.X) WriteF32(value.Y) end
+dataTypes.Vector2F32 = ("Vector2F32" :: any) :: Vector2
+reads.Vector2F32 = function() return Vector2.new(readF32(), readF32()) end
+writes.Vector2F32 = function(value: Vector2) allocate(8) writeF32(value.X) writeF32(value.Y) end
 
-types.Vector3S16 = ("Vector3S16" :: any) :: Vector3
-reads.Vector3S16 = function() return vector.create(ReadS16(), ReadS16(), ReadS16()) end
-writes.Vector3S16 = function(value: Vector3) Allocate(6) WriteS16(value.X) WriteS16(value.Y) WriteS16(value.Z) end
+dataTypes.Vector3S16 = ("Vector3S16" :: any) :: Vector3
+reads.Vector3S16 = function() return vector.create(readS16(), readS16(), readS16()) end
+writes.Vector3S16 = function(value: Vector3) allocate(6) writeS16(value.X) writeS16(value.Y) writeS16(value.Z) end
 
-types.Vector3F24 = ("Vector3F24" :: any) :: Vector3
-reads.Vector3F24 = function() return vector.create(ReadF24(), ReadF24(), ReadF24()) end
-writes.Vector3F24 = function(value: Vector3) Allocate(9) WriteF24(value.X) WriteF24(value.Y) WriteF24(value.Z) end
+dataTypes.Vector3F24 = ("Vector3F24" :: any) :: Vector3
+reads.Vector3F24 = function() return vector.create(readF24(), readF24(), readF24()) end
+writes.Vector3F24 = function(value: Vector3) allocate(9) writeF24(value.X) writeF24(value.Y) writeF24(value.Z) end
 
-types.Vector3F32 = ("Vector3F32" :: any) :: Vector3
-reads.Vector3F32 = function() return vector.create(ReadF32(), ReadF32(), ReadF32()) end
-writes.Vector3F32 = function(value: Vector3) Allocate(12) WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z) end
+dataTypes.Vector3F32 = ("Vector3F32" :: any) :: Vector3
+reads.Vector3F32 = function() return vector.create(readF32(), readF32(), readF32()) end
+writes.Vector3F32 = function(value: Vector3) allocate(12) writeF32(value.X) writeF32(value.Y) writeF32(value.Z) end
 
-types.NumberU4 = ("NumberU4" :: any) :: {number}
+dataTypes.NumberU4 = ("NumberU4" :: any) :: {number}
 reads.NumberU4 = function()
-	local bitOffset = bufferOffset * 8
+	local bitOffset = bufferOffset*8
 	bufferOffset += 1
 	return {
 		buffer.readbits(activeBuffer, bitOffset + 0, 4),
@@ -339,16 +340,16 @@ reads.NumberU4 = function()
 	}
 end
 writes.NumberU4 = function(value: {number})
-	Allocate(1)
-	local bitOffset = bufferOffset * 8
+	allocate(1)
+	local bitOffset = bufferOffset*8
 	bufferOffset += 1
 	buffer.writebits(activeBuffer, bitOffset + 0, 4, value[1])
 	buffer.writebits(activeBuffer, bitOffset + 4, 4, value[2])
 end
 
-types.BooleanNumber = ("BooleanNumber" :: any) :: {Boolean: boolean, Number: number}
+dataTypes.BooleanNumber = ("BooleanNumber" :: any) :: {Boolean: boolean, Number: number}
 reads.BooleanNumber = function()
-	local bitOffset = bufferOffset * 8
+	local bitOffset = bufferOffset*8
 	bufferOffset += 1
 	return {
 		Boolean = buffer.readbits(activeBuffer, bitOffset + 0, 1) == 1,
@@ -356,16 +357,16 @@ reads.BooleanNumber = function()
 	}
 end
 writes.BooleanNumber = function(value: {Boolean: boolean, Number: number})
-	Allocate(1)
-	local bitOffset = bufferOffset * 8
+	allocate(1)
+	local bitOffset = bufferOffset*8
 	bufferOffset += 1
 	buffer.writebits(activeBuffer, bitOffset + 0, 1, if value.Boolean then 1 else 0)
 	buffer.writebits(activeBuffer, bitOffset + 1, 7, value.Number)
 end
 
-types.Boolean1 = ("Boolean1" :: any) :: {boolean}
+dataTypes.Boolean1 = ("Boolean1" :: any) :: {boolean}
 reads.Boolean1 = function()
-	local bitOffset = bufferOffset * 8
+	local bitOffset = bufferOffset*8
 	bufferOffset += 1
 	return {
 		buffer.readbits(activeBuffer, bitOffset + 0, 1) == 1,
@@ -379,8 +380,8 @@ reads.Boolean1 = function()
 	}
 end
 writes.Boolean1 = function(value: {boolean})
-	Allocate(1)
-	local bitOffset = bufferOffset * 8
+	allocate(1)
+	local bitOffset = bufferOffset*8
 	bufferOffset += 1
 	buffer.writebits(activeBuffer, bitOffset + 0, 1, if value[1] then 1 else 0)
 	buffer.writebits(activeBuffer, bitOffset + 1, 1, if value[2] then 1 else 0)
@@ -392,92 +393,93 @@ writes.Boolean1 = function(value: {boolean})
 	buffer.writebits(activeBuffer, bitOffset + 7, 1, if value[8] then 1 else 0)
 end
 
-types.CFrameF24U8 = ("CFrameF24U8" :: any) :: CFrame
+dataTypes.CFrameF24U8 = ("CFrameF24U8" :: any) :: CFrame
 reads.CFrameF24U8 = function()
-	return CFrame.fromEulerAnglesXYZ(ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331)
-		+ vector.create(ReadF24(), ReadF24(), ReadF24())
+	return CFrame.Angles(readU8()/40.58451048843331, readU8()/40.58451048843331, readU8()/40.58451048843331)
+		+ vector.create(readF24(), readF24(), readF24())
 end
 writes.CFrameF24U8 = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
-	Allocate(12)
-	WriteU8(rx * 40.58451048843331 + 0.5) WriteU8(ry * 40.58451048843331 + 0.5) WriteU8(rz * 40.58451048843331 + 0.5)
-	WriteF24(value.X) WriteF24(value.Y) WriteF24(value.Z)
+	allocate(12)
+	writeU8(rx*40.58451048843331 + 0.5) writeU8(ry*40.58451048843331 + 0.5) writeU8(rz*40.58451048843331 + 0.5)
+	writeF24(value.X) writeF24(value.Y) writeF24(value.Z)
 end
 
-types.CFrameF32U8 = ("CFrameF32U8" :: any) :: CFrame
+dataTypes.CFrameF32U8 = ("CFrameF32U8" :: any) :: CFrame
 reads.CFrameF32U8 = function()
-	return CFrame.fromEulerAnglesXYZ(ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331, ReadU8() / 40.58451048843331)
-		+ vector.create(ReadF32(), ReadF32(), ReadF32())
+	return CFrame.fromEulerAnglesXYZ(readU8()/40.58451048843331, readU8()/40.58451048843331, readU8()/40.58451048843331)
+		+ vector.create(readF32(), readF32(), readF32())
 end
 writes.CFrameF32U8 = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
-	Allocate(15)
-	WriteU8(rx * 40.58451048843331 + 0.5) WriteU8(ry * 40.58451048843331 + 0.5) WriteU8(rz * 40.58451048843331 + 0.5)
-	WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z)
+	allocate(15)
+	writeU8(rx*40.58451048843331 + 0.5) writeU8(ry*40.58451048843331 + 0.5) writeU8(rz*40.58451048843331 + 0.5)
+	writeF32(value.X) writeF32(value.Y) writeF32(value.Z)
 end
 
-types.CFrameF32U16 = ("CFrameF32U16" :: any) :: CFrame
+dataTypes.CFrameF32U16 = ("CFrameF32U16" :: any) :: CFrame
 reads.CFrameF32U16 = function()
-	return CFrame.fromEulerAnglesXYZ(ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361)
-		+ vector.create(ReadF32(), ReadF32(), ReadF32())
+	return CFrame.fromEulerAnglesXYZ(readU16()/10430.219195527361, readU16()/10430.219195527361, readU16()/10430.219195527361)
+		+ vector.create(readF32(), readF32(), readF32())
 end
 writes.CFrameF32U16 = function(value: CFrame)
 	local rx, ry, rz = value:ToEulerAnglesXYZ()
-	Allocate(18)
-	WriteU16(rx * 10430.219195527361 + 0.5) WriteU16(ry * 10430.219195527361 + 0.5) WriteU16(rz * 10430.219195527361 + 0.5)
-	WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z)
+	allocate(18)
+	writeU16(rx*10430.219195527361 + 0.5) writeU16(ry*10430.219195527361 + 0.5) writeU16(rz*10430.219195527361 + 0.5)
+	writeF32(value.X) writeF32(value.Y) writeF32(value.Z)
 end
 
-types.Region3 = ("Region3" :: any) :: Region3
+dataTypes.Region3 = ("Region3" :: any) :: Region3
 reads.Region3 = function()
 	return Region3.new(
-		vector.create(ReadF32(), ReadF32(), ReadF32()),
-		vector.create(ReadF32(), ReadF32(), ReadF32())
+		vector.create(readF32(), readF32(), readF32()),
+		vector.create(readF32(), readF32(), readF32())
 	)
 end
 writes.Region3 = function(value: Region3)
-	local halfSize = value.Size / 2
-	local minimum = value.CFrame.Position - halfSize
-	local maximum = value.CFrame.Position + halfSize
-	Allocate(24)
-	WriteF32(minimum.X) WriteF32(minimum.Y) WriteF32(minimum.Z)
-	WriteF32(maximum.X) WriteF32(maximum.Y) WriteF32(maximum.Z)
+	local halfSize = value.Size/2
+	local position = value.CFrame.Position
+	local minimum = position - halfSize
+	local maximum = position + halfSize
+	allocate(24)
+	writeF32(minimum.X) writeF32(minimum.Y) writeF32(minimum.Z)
+	writeF32(maximum.X) writeF32(maximum.Y) writeF32(maximum.Z)
 end
 
-types.NumberSequence = ("NumberSequence" :: any) :: NumberSequence
+dataTypes.NumberSequence = ("NumberSequence" :: any) :: NumberSequence
 reads.NumberSequence = function()
-	local length = ReadU8()
+	local length = readU8()
 	local keypoints = table.create(length)
-	for index = 1, length do
-		table.insert(keypoints, NumberSequenceKeypoint.new(ReadU8() / 255, ReadU8() / 255, ReadU8() / 255))
+	for index = 1, length, 1 do
+		keypoints[index] = NumberSequenceKeypoint.new(readU8()/255, readU8()/255, readU8()/255)
 	end
 	return NumberSequence.new(keypoints)
 end
 writes.NumberSequence = function(value: NumberSequence)
 	local length = #value.Keypoints
-	Allocate(1 + length * 3)
-	WriteU8(length)
+	allocate(1 + length*3)
+	writeU8(length)
 	for index, keypoint in value.Keypoints do
-		WriteU8(keypoint.Time * 255 + 0.5) WriteU8(keypoint.Value * 255 + 0.5) WriteU8(keypoint.Envelope * 255 + 0.5)
+		writeU8(keypoint.Time*255 + 0.5) writeU8(keypoint.Value*255 + 0.5) writeU8(keypoint.Envelope*255 + 0.5)
 	end
 end
 
-types.ColorSequence = ("ColorSequence" :: any) :: ColorSequence
+dataTypes.ColorSequence = ("ColorSequence" :: any) :: ColorSequence
 reads.ColorSequence = function()
-	local length = ReadU8()
+	local length = readU8()
 	local keypoints = table.create(length)
-	for index = 1, length do
-		table.insert(keypoints, ColorSequenceKeypoint.new(ReadU8() / 255, Color3.fromRGB(ReadU8(), ReadU8(), ReadU8())))
+	for index = 1, length, 1 do
+		keypoints[index] = ColorSequenceKeypoint.new(readU8()/255, Color3.fromRGB(readU8(), readU8(), readU8()))
 	end
 	return ColorSequence.new(keypoints)
 end
 writes.ColorSequence = function(value: ColorSequence)
 	local length = #value.Keypoints
-	Allocate(1 + length * 4)
-	WriteU8(length)
+	allocate(1 + length*4)
+	writeU8(length)
 	for index, keypoint in value.Keypoints do
-		WriteU8(keypoint.Time * 255 + 0.5)
-		WriteU8(keypoint.Value.R * 255 + 0.5) WriteU8(keypoint.Value.G * 255 + 0.5) WriteU8(keypoint.Value.B * 255 + 0.5)
+		writeU8(keypoint.Time*255 + 0.5)
+		writeU8(keypoint.Value.R*255 + 0.5) writeU8(keypoint.Value.G*255 + 0.5) writeU8(keypoint.Value.B*255 + 0.5)
 	end
 end
 
@@ -485,13 +487,13 @@ local characterIndices = {}
 local characters = require(script.Characters)
 for index, value in characters do characterIndices[value] = index end
 local characterBits = math.ceil(math.log(#characters + 1, 2))
-local characterBytes = characterBits / 8
-types.Characters = ("Characters" :: any) :: string
+local characterBytes = characterBits/8
+dataTypes.Characters = ("Characters" :: any) :: string
 reads.Characters = function()
-	local length = ReadU8()
+	local length = readU8()
 	local characterArray = table.create(length)
-	local bitOffset = bufferOffset * 8
-	bufferOffset += math.ceil(length * characterBytes)
+	local bitOffset = bufferOffset*8
+	bufferOffset += math.ceil(length*characterBytes)
 	for index = 1, length do
 		table.insert(characterArray, characters[buffer.readbits(activeBuffer, bitOffset, characterBits)])
 		bitOffset += characterBits
@@ -500,10 +502,10 @@ reads.Characters = function()
 end
 writes.Characters = function(value: string)
 	local length = #value
-	local bytes = math.ceil(length * characterBytes)
-	Allocate(1 + bytes)
-	WriteU8(length)
-	local bitOffset = bufferOffset * 8
+	local bytes = math.ceil(length*characterBytes)
+	allocate(1 + bytes)
+	writeU8(length)
+	local bitOffset = bufferOffset*8
 	for index = 1, length do
 		buffer.writebits(activeBuffer, bitOffset, characterBits, characterIndices[value:sub(index, index)])
 		bitOffset += characterBits
@@ -514,204 +516,205 @@ end
 local enumIndices = {}
 local enums = require(script.Enums)
 for index, static in enums do enumIndices[static] = index end
-types.EnumItem = ("EnumItem" :: any) :: EnumItem
-reads.EnumItem = function() return enums[ReadU8()]:FromValue(ReadU16()) end
-writes.EnumItem = function(value: EnumItem) Allocate(3) WriteU8(enumIndices[value.EnumType]) WriteU16(value.Value) end
+dataTypes.EnumItem = ("EnumItem" :: any) :: EnumItem
+reads.EnumItem = function() return enums[readU8()]:FromValue(readU16()) end
+writes.EnumItem = function(value: EnumItem) allocate(3) writeU8(enumIndices[value.EnumType]) writeU16(value.Value) end
 
 local staticIndices = {}
 local statics = require(script.Static1)
 for index, static in statics do staticIndices[static] = index end
-types.Static1 = ("Static1" :: any) :: any
-reads.Static1 = function() return statics[ReadU8()] end
-writes.Static1 = function(value: any) Allocate(1) WriteU8(staticIndices[value] or 0) end
+dataTypes.Static1 = ("Static1" :: any) :: any
+reads.Static1 = function() return statics[readU8()] end
+writes.Static1 = function(value: any) allocate(1) writeU8(staticIndices[value] or 0) end
 
 local staticIndices = {}
 local statics = require(script.Static2)
 for index, static in statics do staticIndices[static] = index end
-types.Static2 = ("Static2" :: any) :: any
-reads.Static2 = function() return statics[ReadU8()] end
-writes.Static2 = function(value: any) Allocate(1) WriteU8(staticIndices[value] or 0) end
+dataTypes.Static2 = ("Static2" :: any) :: any
+reads.Static2 = function() return statics[readU8()] end
+writes.Static2 = function(value: any) allocate(1) writeU8(staticIndices[value] or 0) end
 
 local staticIndices = {}
 local statics = require(script.Static3)
 for index, static in statics do staticIndices[static] = index end
-types.Static3 = ("Static3" :: any) :: any
-reads.Static3 = function() return statics[ReadU8()] end
-writes.Static3 = function(value: any) Allocate(1) WriteU8(staticIndices[value] or 0) end
+dataTypes.Static3 = ("Static3" :: any) :: any
+reads.Static3 = function() return statics[readU8()] end
+writes.Static3 = function(value: any) allocate(1) writeU8(staticIndices[value] or 0) end
 
 
 -- Any Types
-anyReads[0] = function() return nil end
-anyWrites["nil"] = function(value: nil) Allocate(1) WriteU8(0) end
+anyreads[0] = function() return nil end
+anywrites["nil"] = function(value: nil) allocate(1) writeU8(0) end
 
-anyReads[1] = function() return -ReadU8() end
-anyReads[2] = function() return -ReadU16() end
-anyReads[3] = function() return -ReadU24() end
-anyReads[4] = function() return -ReadU32() end
-anyReads[5] = function() return ReadU8() end
-anyReads[6] = function() return ReadU16() end
-anyReads[7] = function() return ReadU24() end
-anyReads[8] = function() return ReadU32() end
-anyReads[9] = function() return ReadF32() end
-anyReads[10] = function() return ReadF64() end
-anyWrites.number = function(value: number)
-	if value % 1 == 0 then
+anyreads[1] = function() return -readU8() end
+anyreads[2] = function() return -readU16() end
+anyreads[3] = function() return -readU24() end
+anyreads[4] = function() return -readU32() end
+anyreads[5] = function() return readU8() end
+anyreads[6] = function() return readU16() end
+anyreads[7] = function() return readU24() end
+anyreads[8] = function() return readU32() end
+anyreads[9] = function() return readF32() end
+anyreads[10] = function() return readF64() end
+anywrites.number = function(value: number)
+	if value%1 == 0 then
 		if value < 0 then
 			if value > -256 then
-				Allocate(2) WriteU8(1) WriteU8(-value)
+				allocate(2) writeU8(1) writeU8(-value)
 			elseif value > -65536 then
-				Allocate(3) WriteU8(2) WriteU16(-value)
+				allocate(3) writeU8(2) writeU16(-value)
 			elseif value > -16777216 then
-				Allocate(4) WriteU8(3) WriteU24(-value)
+				allocate(4) writeU8(3) writeU24(-value)
 			elseif value > -4294967296 then
-				Allocate(5) WriteU8(4) WriteU32(-value)
+				allocate(5) writeU8(4) writeU32(-value)
 			else
-				Allocate(9) WriteU8(10) WriteF64(value)
+				allocate(9) writeU8(10) writeF64(value)
 			end
 		else
 			if value < 256 then
-				Allocate(2) WriteU8(5) WriteU8(value)
+				allocate(2) writeU8(5) writeU8(value)
 			elseif value < 65536 then
-				Allocate(3) WriteU8(6) WriteU16(value)
+				allocate(3) writeU8(6) writeU16(value)
 			elseif value < 16777216 then
-				Allocate(4) WriteU8(7) WriteU24(value)
+				allocate(4) writeU8(7) writeU24(value)
 			elseif value < 4294967296 then
-				Allocate(5) WriteU8(8) WriteU32(value)
+				allocate(5) writeU8(8) writeU32(value)
 			else
-				Allocate(9) WriteU8(10) WriteF64(value)
+				allocate(9) writeU8(10) writeF64(value)
 			end
 		end
 	elseif value > -1048576 and value < 1048576 then
-		Allocate(5) WriteU8(9) WriteF32(value)
+		allocate(5) writeU8(9) writeF32(value)
 	else
-		Allocate(9) WriteU8(10) WriteF64(value)
+		allocate(9) writeU8(10) writeF64(value)
 	end
 end
 
-anyReads[11] = function() return ReadString(ReadU8()) end
-anyWrites.string = function(value: string) local length = #value Allocate(2 + length) WriteU8(11) WriteU8(length) WriteString(value) end
+anyreads[11] = function() return readString(readU8()) end
+anywrites.string = function(value: string) local length = #value allocate(2 + length) writeU8(11) writeU8(length) writeString(value) end
 
-anyReads[12] = function() return ReadBuffer(ReadU8()) end
-anyWrites.buffer = function(value: buffer) local length = buffer.len(value) Allocate(2 + length) WriteU8(12) WriteU8(length) WriteBuffer(value) end
+anyreads[12] = function() return readBuffer(readU8()) end
+anywrites.buffer = function(value: buffer) local length = buffer.len(value) allocate(2 + length) writeU8(12) writeU8(length) writeBuffer(value) end
 
-anyReads[13] = function() return ReadInstance() end
-anyWrites.Instance = function(value: Instance) Allocate(1) WriteU8(13) WriteInstance(value) end
+anyreads[13] = function() return readInstance() end
+anywrites.Instance = function(value: Instance) allocate(1) writeU8(13) writeInstance(value) end
 
-anyReads[14] = function() return ReadU8() == 1 end
-anyWrites.boolean = function(value: boolean) Allocate(2) WriteU8(14) WriteU8(if value then 1 else 0) end
+anyreads[14] = function() return readU8() == 1 end
+anywrites.boolean = function(value: boolean) allocate(2) writeU8(14) writeU8(if value then 1 else 0) end
 
-anyReads[15] = function() return NumberRange.new(ReadF32(), ReadF32()) end
-anyWrites.NumberRange = function(value: NumberRange) Allocate(9) WriteU8(15) WriteF32(value.Min) WriteF32(value.Max) end
+anyreads[15] = function() return NumberRange.new(readF32(), readF32()) end
+anywrites.NumberRange = function(value: NumberRange) allocate(9) writeU8(15) writeF32(value.Min) writeF32(value.Max) end
 
-anyReads[16] = function() return BrickColor.new(ReadU16()) end
-anyWrites.BrickColor = function(value: BrickColor) Allocate(3) WriteU8(16) WriteU16(value.Number) end
+anyreads[16] = function() return BrickColor.new(readU16()) end
+anywrites.BrickColor = function(value: BrickColor) allocate(3) writeU8(16) writeU16(value.Number) end
 
-anyReads[17] = function() return Color3.fromRGB(ReadU8(), ReadU8(), ReadU8()) end
-anyWrites.Color3 = function(value: Color3) Allocate(4) WriteU8(17) WriteU8(value.R * 255 + 0.5)  WriteU8(value.G * 255 + 0.5)  WriteU8(value.B * 255 + 0.5) end
+anyreads[17] = function() return Color3.fromRGB(readU8(), readU8(), readU8()) end
+anywrites.Color3 = function(value: Color3) allocate(4) writeU8(17) writeU8(value.R*255 + 0.5)  writeU8(value.G*255 + 0.5)  writeU8(value.B*255 + 0.5) end
 
-anyReads[18] = function() return UDim.new(ReadS16() / 1000, ReadS16()) end
-anyWrites.UDim = function(value: UDim) Allocate(5) WriteU8(18) WriteS16(value.Scale * 1000) WriteS16(value.Offset) end
+anyreads[18] = function() return UDim.new(readS16()/1000, readS16()) end
+anywrites.UDim = function(value: UDim) allocate(5) writeU8(18) writeS16(value.Scale*1000) writeS16(value.Offset) end
 
-anyReads[19] = function() return UDim2.new(ReadS16() / 1000, ReadS16(), ReadS16() / 1000, ReadS16()) end
-anyWrites.UDim2 = function(value: UDim2) Allocate(9) WriteU8(19) WriteS16(value.X.Scale * 1000) WriteS16(value.X.Offset) WriteS16(value.Y.Scale * 1000) WriteS16(value.Y.Offset) end
+anyreads[19] = function() return UDim2.new(readS16()/1000, readS16(), readS16()/1000, readS16()) end
+anywrites.UDim2 = function(value: UDim2) allocate(9) writeU8(19) writeS16(value.X.Scale*1000) writeS16(value.X.Offset) writeS16(value.Y.Scale*1000) writeS16(value.Y.Offset) end
 
-anyReads[20] = function() return Rect.new(ReadF32(), ReadF32(), ReadF32(), ReadF32()) end
-anyWrites.Rect = function(value: Rect) Allocate(17) WriteU8(20) WriteF32(value.Min.X) WriteF32(value.Min.Y) WriteF32(value.Max.X) WriteF32(value.Max.Y) end
+anyreads[20] = function() return Rect.new(readF32(), readF32(), readF32(), readF32()) end
+anywrites.Rect = function(value: Rect) allocate(17) writeU8(20) writeF32(value.Min.X) writeF32(value.Min.Y) writeF32(value.Max.X) writeF32(value.Max.Y) end
 
-anyReads[21] = function() return Vector2.new(ReadF32(), ReadF32()) end
-anyWrites.Vector2 = function(value: Vector2) Allocate(9) WriteU8(21) WriteF32(value.X) WriteF32(value.Y) end
+anyreads[21] = function() return Vector2.new(readF32(), readF32()) end
+anywrites.Vector2 = function(value: Vector2) allocate(9) writeU8(21) writeF32(value.X) writeF32(value.Y) end
 
-anyReads[22] = function() return vector.create(ReadF32(), ReadF32(), ReadF32()) end
-anyWrites.Vector3 = function(value: Vector3) Allocate(13) WriteU8(22) WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z) end
+anyreads[22] = function() return vector.create(readF32(), readF32(), readF32()) end
+anywrites.Vector3 = function(value: Vector3) allocate(13) writeU8(22) writeF32(value.X) writeF32(value.Y) writeF32(value.Z) end
 
-anyReads[23] = function()
-	return CFrame.fromEulerAnglesXYZ(ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361, ReadU16() / 10430.219195527361)
-		+ vector.create(ReadF32(), ReadF32(), ReadF32())
+anyreads[23] = function()
+	return CFrame.Angles(readU16()/10430.219195527361, readU16()/10430.219195527361, readU16()/10430.219195527361)
+		+ vector.create(readF32(), readF32(), readF32())
 end
-anyWrites.CFrame = function(value: CFrame)
-	local rx, ry, rz = value:ToEulerAnglesXYZ()
-	Allocate(19)
-	WriteU8(23)
-	WriteU16(rx * 10430.219195527361 + 0.5) WriteU16(ry * 10430.219195527361 + 0.5) WriteU16(rz * 10430.219195527361 + 0.5)
-	WriteF32(value.X) WriteF32(value.Y) WriteF32(value.Z)
+anywrites.CFrame = function(value: CFrame)
+	local rx, ry, rz = value:ToOrientation()
+	allocate(19)
+	writeU8(23)
+	writeU16(rx*10430.219195527361 + 0.5) writeU16(ry*10430.219195527361 + 0.5) writeU16(rz*10430.219195527361 + 0.5)
+	writeF32(value.X) writeF32(value.Y) writeF32(value.Z)
 end
 
-anyReads[24] = function()
+anyreads[24] = function()
 	return Region3.new(
-		vector.create(ReadF32(), ReadF32(), ReadF32()),
-		vector.create(ReadF32(), ReadF32(), ReadF32())
+		vector.create(readF32(), readF32(), readF32()),
+		vector.create(readF32(), readF32(), readF32())
 	)
 end
-anyWrites.Region3 = function(value: Region3)
-	local halfSize = value.Size / 2
-	local minimum = value.CFrame.Position - halfSize
-	local maximum = value.CFrame.Position + halfSize
-	Allocate(25)
-	WriteU8(24)
-	WriteF32(minimum.X) WriteF32(minimum.Y) WriteF32(minimum.Z)
-	WriteF32(maximum.X) WriteF32(maximum.Y) WriteF32(maximum.Z)
+anywrites.Region3 = function(value: Region3)
+	local halfSize = value.Size/2
+	local position = value.CFrame.Position
+	local minimum = position - halfSize
+	local maximum = position + halfSize
+	allocate(25)
+	writeU8(24)
+	writeF32(minimum.X) writeF32(minimum.Y) writeF32(minimum.Z)
+	writeF32(maximum.X) writeF32(maximum.Y) writeF32(maximum.Z)
 end
 
-anyReads[25] = function()
-	local length = ReadU8()
+anyreads[25] = function()
+	local length = readU8()
 	local keypoints = table.create(length)
-	for index = 1, length do
-		table.insert(keypoints, NumberSequenceKeypoint.new(ReadU8() / 255, ReadU8() / 255, ReadU8() / 255))
+	for index = 1, length, 1 do
+		keypoints[index] = NumberSequenceKeypoint.new(readU8()/255, readU8()/255, readU8()/255)
 	end
 	return NumberSequence.new(keypoints)
 end
-anyWrites.NumberSequence = function(value: NumberSequence)
+anywrites.NumberSequence = function(value: NumberSequence)
 	local length = #value.Keypoints
-	Allocate(2 + length * 3)
-	WriteU8(25)
-	WriteU8(length)
+	allocate(2 + length*3)
+	writeU8(25)
+	writeU8(length)
 	for index, keypoint in value.Keypoints do
-		WriteU8(keypoint.Time * 255 + 0.5) WriteU8(keypoint.Value * 255 + 0.5) WriteU8(keypoint.Envelope * 255 + 0.5)
+		writeU8(keypoint.Time*255 + 0.5) writeU8(keypoint.Value*255 + 0.5) writeU8(keypoint.Envelope*255 + 0.5)
 	end
 end
 
-anyReads[26] = function()
-	local length = ReadU8()
+anyreads[26] = function()
+	local length = readU8()
 	local keypoints = table.create(length)
-	for index = 1, length do
-		table.insert(keypoints, ColorSequenceKeypoint.new(ReadU8() / 255, Color3.fromRGB(ReadU8(), ReadU8(), ReadU8())))
+	for index = 1, length, 1 do
+		keypoints[index] = ColorSequenceKeypoint.new(readU8()/255, Color3.fromRGB(readU8(), readU8(), readU8()))
 	end
 	return ColorSequence.new(keypoints)
 end
-anyWrites.ColorSequence = function(value: ColorSequence)
+anywrites.ColorSequence = function(value: ColorSequence)
 	local length = #value.Keypoints
-	Allocate(2 + length * 4)
-	WriteU8(26)
-	WriteU8(length)
+	allocate(2 + length*4)
+	writeU8(26)
+	writeU8(length)
 	for index, keypoint in value.Keypoints do
-		WriteU8(keypoint.Time * 255 + 0.5)
-		WriteU8(keypoint.Value.R * 255 + 0.5) WriteU8(keypoint.Value.G * 255 + 0.5) WriteU8(keypoint.Value.B * 255 + 0.5)
+		writeU8(keypoint.Time*255 + 0.5)
+		writeU8(keypoint.Value.R*255 + 0.5) writeU8(keypoint.Value.G*255 + 0.5) writeU8(keypoint.Value.B*255 + 0.5)
 	end
 end
 
-anyReads[27] = function()
-	return enums[ReadU8()]:FromValue(ReadU16())
+anyreads[27] = function()
+	return enums[readU8()]:FromValue(readU16())
 end
-anyWrites.EnumItem = function(value: EnumItem)
-	Allocate(4)
-	WriteU8(27)
-	WriteU8(enumIndices[value.EnumType])
-	WriteU16(value.Value)
+anywrites.EnumItem = function(value: EnumItem)
+	allocate(4)
+	writeU8(27)
+	writeU8(enumIndices[value.EnumType])
+	writeU16(value.Value)
 end
 
-anyReads[28] = function()
+anyreads[28] = function()
 	local value = {}
 	while true do
-		local typeId = ReadU8()
-		if typeId == 0 then return value else value[anyReads[typeId]()] = anyReads[ReadU8()]() end
+		local typeId = readU8()
+		if typeId == 0 then return value else value[anyreads[typeId]()] = anyreads[readU8()]() end
 	end
 end
-anyWrites.table = function(value: {[any]: any})
-	Allocate(1)
-	WriteU8(28)
-	for index, value in value do anyWrites[typeof(index)](index) anyWrites[typeof(value)](value) end
-	Allocate(1)
-	WriteU8(0)
+anywrites.table = function(value: {[any]: any})
+	allocate(1)
+	writeU8(28)
+	for index, value in value do anywrites[typeof(index)](index) anywrites[typeof(value)](value) end
+	allocate(1)
+	writeU8(0)
 end
 
 
@@ -742,7 +745,7 @@ return {
 		return bufferOffset >= bufferLength
 	end,
 	
-	Types = types,
+	DataTypes = dataTypes,
 	Reads = reads,
 	Writes = writes,
 }
