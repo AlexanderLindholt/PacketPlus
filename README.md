@@ -6,18 +6,20 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 ​<br>
 <br>
 
-# ⚡ How it's better.
+# ✨ It's just better!
 This modified version of Packet offers simplified packet definitions and minor optimizations.<br>
 Additionally, it brings QoL changes, such as additional and improved error messages.
 
 <br>
 
-# What you need to know.
+# 🛠️ Setup and use it!
 First and foremost, [learn the original Packet library](https://www.youtube.com/watch?v=WoIElUdj64A&ab_channel=SuphiKaner).
 
-Then, for Packet+, you need to setup a signal library.
+<br>
+
+Then, for Packet+, you need to setup a signal library.<br>
 <a target="_blank" href="https://github.com/AlexanderLindholt/SignalPlus">Signal+</a> is recommended for performance.<br>
-It's crucial that you give the module the tag `Signal`, so that Packet+ can identify it.
+Make sure to tag the module `Signal`.
 
 <br>
 
