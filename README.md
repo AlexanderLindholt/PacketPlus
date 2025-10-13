@@ -6,7 +6,7 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 ​<br>
 <br>
 
-# ✨ It's just better!
+# ✨ It’s just better!
 This modified version of Packet offers simplified packet definitions and minor optimizations.<br>
 Additionally, it brings QoL changes, such as additional and improved error messages.
 
@@ -53,4 +53,4 @@ return {
 	MyCoolPacket = Packet(Packet.Number)
 }
 ```
-No support for putting definitions in every script, because that's ugly anyways!
+No support for putting definitions in every script, because that’s ugly anyways!
