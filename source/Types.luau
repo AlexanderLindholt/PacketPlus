@@ -1,6 +1,5 @@
---!strict
---!native
 --!optimize 2
+--!native
 
 --[[
 	S8		Minimum: -128			Maximum: 127
@@ -31,9 +30,11 @@ export type Cursor = {
 
 -- Signal types from Signal+.
 export type Connection = {
+	Signal: Signal,
 	Connected: boolean,
 	Disconnect: typeof(
-		-- Erases the connection.
+		-- Removes the connection from the signal.
+		-- <strong>The connection’s data remains.</strong>
 		function(connection: Connection) end
 	)
 }
@@ -52,18 +53,18 @@ export type Signal<Parameters...> = {
 	),
 	
 	Fire: typeof(
-		-- Runs all connected functions, and resumes all waiting threads.
+		-- Runs all connected functions and resumes all waiting threads.
 		function(signal: Signal<Parameters...>, ...: Parameters...) end
 	),
 	
 	DisconnectAll: typeof(
-		-- Erases all connections.<br>
-		-- <em>Much faster than calling <code>Disconnect</code> on each.</em>
+		-- Erases all connections.
+		-- <strong>Much faster than calling <code>Disconnect</code> on each.</strong>
 		function(signal: Signal<Parameters...>) end
 	),
 	Destroy: typeof(
-		-- Erases all connections and methods, making the signal unusable.<br>
-		-- Remove references to the signal to delete it completely.
+		-- Erases all connections and methods.
+		-- <strong>To fully erase, also remove all references to the signal.</strong>
 		function(signal: Signal<Parameters...>) end
 	)
 }
