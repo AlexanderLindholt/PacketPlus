@@ -7,8 +7,7 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 <br>
 
 # ✨ It’s just better!
-This modified version of Packet offers simplified packet definitions and packet safety (early packets are still received).<br>
-Additionally, it brings minor improvements regarding error messages and optimization.
+This modified version of Packet offers simplified packet definitions and packet safety (early packets are still received). Additionally, it brings minor improvements regarding error messages and optimization.
 
 <br>
 
