@@ -52,4 +52,4 @@ return {
 	MyCoolPacket = Packet(Packet.Number)
 }
 ```
-No support for putting definitions in every script, because that’s ugly anyways!
+Packet+ removes the name parameter, requiring packets to be defined in a shared module. The packet name is inferred from the table key, reducing repetition and keeping definitions centralized and efficient.
