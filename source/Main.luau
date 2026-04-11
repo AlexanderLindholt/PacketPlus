@@ -8,7 +8,7 @@
  | |  | (_| | (__|   <  __/ |_  |_|  
  |_|   \__,_|\___|_|\_\___|\__|      
 
-v1.3.0
+v1.3.1
 
 An improved version of the Packet networking library.
 
@@ -351,7 +351,7 @@ if RunService:IsServer() then
 	
 	remoteEvent.OnServerEvent:Connect(function(player: Player, receivedBuffer: buffer, instances: {Instance}?)
 		if not players[player] then
-			players[player] = true
+			players[player] = player
 			
 			-- Send packets the client missed while initializing.
 			local list = missedPackets[player]
