@@ -6,7 +6,7 @@ An improved version of the <a target="_blank" href="https://devforum.roblox.com/
 ​<br>
 <br>
 
-# ✨ It’s just better!
+# ✨ Changes
 This modified version of Packet offers simplified packet definitions and packet safety (early packets are still received). Additionally, it brings minor improvements regarding error messages and optimization.
 
 <br>
@@ -17,12 +17,12 @@ First and foremost, [learn the original Packet library](https://www.youtube.com/
 <br>
 
 Then, for Packet+, you need to setup a signal library.<br>
-<a target="_blank" href="https://github.com/AlexanderLindholt/SignalPlus">Signal+</a> is recommended because it’s the best.<br>
+<a target="_blank" href="https://github.com/AlexanderLindholt/SignalPlus">Signal+</a> is highly recommended.<br>
 Make sure to tag the module `Signal`.
 
 <br>
 
-The API is mostly identical to the original library, but there is a key difference, seen below:
+The API is mostly identical to the original library, but packet setup has a few key changes:
 
 ## ❌ Packet:
 Use a shared module:
@@ -52,4 +52,4 @@ return {
 	MyCoolPacket = Packet(Packet.Number)
 }
 ```
-Packet+ removes the name parameter, requiring packets to be defined in a shared module. The packet name is inferred from the table key, reducing repetition and keeping definitions centralized and efficient.
+Packet+ removes the name parameter and requires packets to be defined in a shared module. The packet name is inferred from the table key, reducing repetition and keeping definitions centralized and efficient.
